@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import signal
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
@@ -26,6 +27,11 @@ def batchify(entries, size=10):
 		yield batch
 
 
+def signal_handler(sig, frame):
+	print("You pressed Ctrl+C!")
+	sys.exit(0)
+
+
 def parse_argv(argv):
 	parser = ArgumentParser(
 		description="database auto util",
@@ -46,21 +52,16 @@ def parse_argv(argv):
 		help="the database"
 	)
 	parser.add_argument(
-		"-format", "--format",
-		default="genbank",
-		help="the sequence file format"
-	)
-	parser.add_argument(
 		"-post_size", "--post-size",
 		type=int,
 		default=1000,
-		help="the number of records to download at a time"
+		help="the number of records to post at a time"
 	)
 	parser.add_argument(
 		"-fetch-size", "--fetch-size",
 		type=int,
 		default=100,
-		help="the number of records to download at a time"
+		help="the number of records to fetch at a time"
 	)
 	parser.add_argument(
 		"-email", "--email",
@@ -81,33 +82,39 @@ def main(argv):
 	ext = target.name.split(".")[-1]
 	fmt = ext_to_fmt.get(ext, ext)
 	target.exists() or target.touch(exist_ok=True)
+
+	# get local accessions
 	accs = {rec.id for rec in SeqIO.parse(target, fmt)}
 
+	# get the number of remote accessions
 	with Entrez.esearch(db=args.db, term=args.term, idtype="acc") as file:
 		record = Entrez.read(file)
 
+	# get the remote accessions
 	count = int(record["Count"])
 	print("count: ", count, file=sys.stderr)
 	with Entrez.esearch(db=args.db, term=args.term, idtype="acc", retmax=count) as file:
 		record = Entrez.read(file)
 		accs = set(record["IdList"]) - accs
 
+	# accession diff
 	print("new: ", len(accs), file=sys.stderr)
 
 	if accs:
+		# cat file | epost -db db | efetch -format fmt > target
 		for batch in batchify(accs, args.post_size):
 			print("download:", *batch[:5], "...", file=sys.stderr)
 			kwargs = dict(stdin=PIPE, stdout=PIPE, universal_newlines=True)
 			cmd1, cmd2 = ["epost", "-db", args.db], ["efetch", "-format", fmt]
 			with target.open("a") as file:
-				with Popen(cmd1, **kwargs) as pipe1:
+				with Popen(cmd1, **kwargs) as pipe1, Popen(cmd2, **kwargs) as pipe2:
 					stdout, stderr = pipe1.communicate("\n".join(batch))
-					with Popen(cmd2, **kwargs) as pipe2:
-						stdout, stderr = pipe2.communicate(stdout)
-						print(stdout, file=file)
+					stdout, stderr = pipe2.communicate(stdout)
+					print(stdout, file=file)
 
 	return 0
 
 
 if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
 	sys.exit(main(sys.argv))

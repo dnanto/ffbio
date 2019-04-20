@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os.path
 import sqlite3
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -31,9 +32,8 @@ def parse_argv(argv):
 	parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
 	parser.add_argument(
-		"-index",
-		default=":memory:",
-		help="here to store the SQLite index"
+		"index",
+		help="the SQLite index"
 	)
 	parser.add_argument(
 		"-filenames", "--filenames",
@@ -44,10 +44,10 @@ def parse_argv(argv):
 		"-accessions", "--accessions", dest="keys", nargs="+"
 	)
 	parser.add_argument(
-		"-no-version", "--no-version", action="store_true"
+		"-no-version", "--no-version", dest="no_ver", action="store_true"
 	)
 	parser.add_argument(
-		"-fmt-in", "--fmt-in", default="fasta"
+		"-fmt-idx", "--fmt-idx", default="fasta"
 	)
 	parser.add_argument(
 		"-fmt-out", "--fmt-out", default="fasta"
@@ -61,12 +61,13 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 
-	records = SeqIO.index_db(args.index, filenames=args.filenames, format=args.fmt_in)
+	args.fmt_idx = None if os.path.exists(args.index) else args.fmt_idx
+	records = SeqIO.index_db(args.index, filenames=args.filenames, format=args.fmt_idx)
 
-	args.keys = list(accverize(args.index, args.keys)) if args.keys and args.no_version else args.keys
+	keys = list(accverize(args.index, args.keys)) if args.keys and args.no_ver else args.keys
 
-	if args.keys:
-		SeqIO.write((records[key] for key in args.keys), sys.stdout, args.fmt_out)
+	if keys:
+		SeqIO.write((records[key] for key in keys), sys.stdout, args.format)
 
 	return 0
 

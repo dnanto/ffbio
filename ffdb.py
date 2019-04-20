@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import signal
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
+from signal import signal, SIGPIPE, SIG_DFL
 from subprocess import PIPE, Popen
 
 from Bio import Entrez
@@ -25,11 +25,6 @@ def batchify(entries, size=10):
 
 	if batch:
 		yield batch
-
-
-def signal_handler(sig, frame):
-	print("You pressed Ctrl+C!")
-	sys.exit(0)
 
 
 def parse_argv(argv):
@@ -118,5 +113,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-	signal.signal(signal.SIGINT, signal_handler)
+	signal(SIGPIPE, SIG_DFL)
 	sys.exit(main(sys.argv))

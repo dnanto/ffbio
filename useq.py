@@ -3,6 +3,7 @@
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from collections import defaultdict, OrderedDict
+from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
 from Bio.SeqUtils.CheckSum import seguid
@@ -72,4 +73,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
+	signal(SIGPIPE, SIG_DFL)
 	sys.exit(main(sys.argv))

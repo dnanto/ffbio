@@ -2,6 +2,7 @@
 
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
 
@@ -17,7 +18,7 @@ def parse_cds(file, key_desc="product"):
 				try:
 					protein_id = feature.qualifiers["protein_id"][0]
 					cds = feature.extract(record)
-					cds.id = f"lcl|{record.id}|{protein_id}"
+					cds.id = f"lcl|{record.id}.{protein_id}"
 					cds.description = feature.qualifiers.get(key_desc, [""])[0]
 					yield cds
 				except:
@@ -51,4 +52,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
+	signal(SIGPIPE, SIG_DFL)
 	sys.exit(main(sys.argv))

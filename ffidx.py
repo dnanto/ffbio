@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import signal
 import sqlite3
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
 
@@ -58,11 +58,6 @@ def parse_argv(argv):
 	return args
 
 
-def signal_handler(sig, frame):
-	print("You pressed Ctrl+C!")
-	sys.exit(0)
-
-
 def main(argv):
 	args = parse_argv(argv[1:])
 
@@ -77,5 +72,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-	signal.signal(signal.SIGINT, signal_handler)
+	signal(SIGPIPE, SIG_DFL)
 	sys.exit(main(sys.argv))

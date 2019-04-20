@@ -37,10 +37,11 @@ def parse_argv(argv):
 		description="database auto util",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
+
 	parser.add_argument(
 		"target",
 		type=Path,
-		help="the target repor to create/update"
+		help="the target file to create/update"
 	)
 	parser.add_argument(
 		"term",
@@ -68,6 +69,7 @@ def parse_argv(argv):
 		default="",
 		help="the e-mail"
 	)
+
 	args = parser.parse_args(argv)
 
 	return args

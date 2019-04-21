@@ -7,19 +7,16 @@ from signal import signal, SIGPIPE, SIG_DFL
 from Bio import SeqIO
 
 
-def is_feature_cds(feature):
-	return feature.type == "CDS"
-
-
-def parse_cds(file, key_desc="product"):
+def parse_cds(file):
 	for record in SeqIO.parse(file, "genbank"):
 		for feature in record.features:
 			if feature.type == "CDS":
 				try:
 					protein_id = feature.qualifiers["protein_id"][0]
+					product = feature.qualifiers.get("product", ["n/a"])[0]
 					cds = feature.extract(record)
-					cds.id = f"lcl|{record.id}.{protein_id}"
-					cds.description = feature.qualifiers.get(key_desc, [""])[0]
+					cds.id = f"lcl|{protein_id}"
+					cds.description = f"{protein_id}|{product}|{feature.location}"
 					yield cds
 				except:
 					pass
@@ -36,9 +33,6 @@ def parse_argv(argv):
 		type=FileType(),
 		help="the sequence file"
 	)
-	parser.add_argument(
-		"-key-description", "--key-description", dest="key_desc", default="product"
-	)
 
 	args = parser.parse_args(argv)
 
@@ -48,7 +42,7 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 	with args.file as file:
-		SeqIO.write(parse_cds(file, args.key_desc), sys.stdout, "fasta")
+		SeqIO.write(parse_cds(file), sys.stdout, "fasta")
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ def main(argv):
 	keys = list(accverize(args.index, args.keys)) if args.keys and args.no_ver else args.keys
 
 	if keys:
-		SeqIO.write((records[key] for key in keys), sys.stdout, args.format)
+		SeqIO.write((records[key] for key in keys), sys.stdout, args.fmt_out)
 
 	return 0
 

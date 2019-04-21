@@ -16,7 +16,7 @@ def parse_cds(file):
 					product = feature.qualifiers.get("product", ["n/a"])[0]
 					cds = feature.extract(record)
 					cds.id = f"lcl|{protein_id}"
-					cds.description = f"{protein_id}|{product}|{feature.location}"
+					cds.description = f"{record.id}|{product}|{feature.location}"
 					yield cds
 				except:
 					pass

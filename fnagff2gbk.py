@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import fileinput
+import os.path
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
@@ -30,6 +32,11 @@ def parse_argv(argv):
 		required=True,
 		help="the gff file"
 	)
+	parser.add_argument(
+		"-out", "--out",
+		type=Path,
+		default=Path()
+	)
 
 	args = parser.parse_args(argv)
 
@@ -46,8 +53,9 @@ def main(argv):
 		alphabet=generic_dna
 	)
 
-	features = defaultdict(list)
+	os.makedirs(args.out, exist_ok=True)
 
+	features = defaultdict(list)
 	with fileinput.input(args.gff) as file:
 		for line in file:
 			tokens = line.rstrip().split("\t")
@@ -59,9 +67,13 @@ def main(argv):
 			features[seqid].append(feature)
 
 	for key, val in records.items():
-		val.annotations["date"] = datetime.now().strftime("%d-%b-%Y").upper()
-		val.features = sorted(features[key], key=lambda x: x.location.start)
-		SeqIO.write(val, sys.stdout, "genbank")
+		path = args.out.joinpath(key).with_suffix(".gbk")
+		with path.open("w") as file:
+			val.name = key
+			val.annotations["date"] = datetime.now().strftime("%d-%b-%Y").upper()
+			val.features = sorted(features[key], key=lambda x: x.location.start)
+			print(path)
+			SeqIO.write(val, file, "genbank")
 
 
 if __name__ == "__main__":

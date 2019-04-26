@@ -2,7 +2,9 @@
 
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
+from itertools import groupby
+from os.path import splitext
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
@@ -21,23 +23,19 @@ def parse_argv(argv):
 		help="the sequence file"
 	)
 	parser.add_argument(
-		"-echo", "--echo",
-		action="store_true",
-		help="the flag to echo the sequence data to stdout"
+		"-fmt", "--fmt", default="fasta"
 	)
 	parser.add_argument(
-		"-prefix", "--prefix",
+		"-echo", "--echo", action="store_true"
+	)
+	parser.add_argument(
+		"-pfx", "--pfx", "-prefix", "--prefix",
 		help="the path prefix for the output files"
-	)
-	parser.add_argument(
-		"-fmt-in", "--fmt-in", default="fasta"
-	)
-	parser.add_argument(
-		"-fmt-out", "--fmt-out", default="fasta"
 	)
 
 	args = parser.parse_args(argv)
-	args.prefix = args.prefix or args.file.name
+	args.pfx = args.pfx or args.file.name
+	args.echo = args.file.name == "<stdin>"
 
 	return args
 
@@ -46,28 +44,28 @@ def main(argv):
 	args = parse_argv(argv[1:])
 
 	# aggregate sequences by unique hash
-	rec = defaultdict(list)
 	with args.file as file:
-		for record in SeqIO.parse(file, args.fmt_in):
-			key = seguid(record.seq)
-			rec[key].append(record)
+		records = OrderedDict(
+			(key, list(val)) for key, val in
+			groupby(SeqIO.parse(file, args.fmt), key=lambda val: seguid(val.seq))
+		)
 
 	# map unique sequence index to unique hash
 	idx_to_key = OrderedDict()
-	with open(args.prefix + ".tsv", "w") as file:
+	with open(args.pfx + ".tsv", "w") as file:
 		print("idx", "key", "id", "description", sep="\t", file=file)
-		idx_width = len(str(len(rec)))
-		for idx, ele in enumerate(rec.items(), start=1):
-			key, val = ele
+		idx_width = len(str(len(records)))
+		for idx, ele in enumerate(records.items(), start=1):
+			idx, key, val = f"{idx:{idx_width}d}", ele[0], ele[1]
 			idx_to_key[idx] = key
 			for record in val:
-				idx_val = "%0*d" % (idx_width, idx)
-				print(idx_val, key, record.id, record.description, sep="\t", file=file)
-				record.id, record.description = idx_val, ""
+				print(idx, key, record.id, record.description, sep="\t", file=file)
+				record.id, record.description = idx, ""
 
 	# output unique sequences
-	file = sys.stdout if args.echo else args.prefix + ".fna"
-	SeqIO.write((rec[val][0] for val in idx_to_key.values()), file, args.fmt_out)
+	fname = args.file.name
+	file = sys.stdout if args.echo else (args.pfx + "." + splitext(fname)[-1].lstrip("."))
+	SeqIO.write((records[val][0] for val in idx_to_key.values()), file, args.fmt)
 
 	return 0
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sqlite3
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
@@ -9,9 +10,13 @@ from subprocess import PIPE, Popen
 from Bio import Entrez
 from Bio import SeqIO
 
-ext_to_fmt = {
+formats = {
+	"faa": "fasta",
 	"fna": "fasta",
-	"gbk": "gb"
+	"fas": "fasta",
+	"fasta": "fasta",
+	"gbk": "genbank",
+	"genbank": "genbank"
 }
 
 
@@ -29,26 +34,38 @@ def batchify(entries, size=10):
 
 def parse_argv(argv):
 	parser = ArgumentParser(
-		description="database auto util",
+		description="repo auto util",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
 
+	# local
 	parser.add_argument(
-		"target",
+		"repo",
 		type=Path,
 		help="the target file to create/update"
 	)
 	parser.add_argument(
-		"term",
-		help="the term"
+		"-fmt", "--fmt", "-format", "--format",
+		default="fasta"
 	)
+	parser.add_argument(
+		"-ext", "--ext", "-extension", "--extension"
+	)
+	parser.add_argument(
+		"-redo", "--redo", action="store_true"
+	)
+	# remote
 	parser.add_argument(
 		"-db", "--db", "-database", "--database",
 		default="nuccore",
 		help="the database"
 	)
 	parser.add_argument(
-		"-post_size", "--post-size",
+		"-term",
+		help="the term"
+	)
+	parser.add_argument(
+		"-post-size", "--post-size",
 		type=int,
 		default=1000,
 		help="the number of records to post at a time"
@@ -67,6 +84,8 @@ def parse_argv(argv):
 
 	args = parser.parse_args(argv)
 
+	args.ext = args.ext or args.fmt
+
 	return args
 
 
@@ -75,22 +94,40 @@ def main(argv):
 
 	Entrez.email = args.email
 
-	target = args.target
-	ext = target.name.split(".")[-1]
-	fmt = ext_to_fmt.get(ext, ext)
-	target.exists() or target.touch(exist_ok=True)
+	repo = args.repo
+	fmt = formats[args.fmt]
+	ext = args.ext or fmt
 
-	# get local accessions
-	accs = {rec.id for rec in SeqIO.parse(target, fmt)}
+	db = args.db
+	term = args.term
+
+	path_idx = repo.with_suffix(".idx")
+
+	meta, files, accs = {}, [], set()
+	if args.redo:
+		path_idx.exists() and path_idx.unlink() and print("unlink: ", str(path_idx))
+		for path in path_idx.parent.glob(f"{repo}.[0-9].{ext}"):
+			print("unlink: ", str(path))
+			path.unlink()
+	elif path_idx.exists():
+		with sqlite3.connect(path_idx) as conn:
+			meta = dict(conn.execute("SELECT * FROM meta_data").fetchall())
+			accs = {row[0] for row in conn.execute("SELECT key FROM offset_data")}
+
+	db = meta.get("db", db)
+	fmt = meta.get("format", fmt)
+	ext = meta.get("extension", ext)
+	term = meta.get("term", term)
 
 	# get the number of remote accessions
-	with Entrez.esearch(db=args.db, term=args.term, idtype="acc") as file:
+	with Entrez.esearch(db=db, term=term, idtype="acc") as file:
 		record = Entrez.read(file)
 
 	# get the remote accessions
 	count = int(record["Count"])
 	print("count: ", count, file=sys.stderr)
-	with Entrez.esearch(db=args.db, term=args.term, idtype="acc", retmax=count) as file:
+
+	with Entrez.esearch(db=db, term=term, idtype="acc", retmax=count) as file:
 		record = Entrez.read(file)
 		accs = set(record["IdList"]) - accs
 
@@ -102,12 +139,30 @@ def main(argv):
 		for batch in batchify(accs, args.post_size):
 			print("download:", *batch[:5], "...", file=sys.stderr)
 			kwargs = dict(stdin=PIPE, stdout=PIPE, universal_newlines=True)
-			cmd1, cmd2 = ["epost", "-db", args.db], ["efetch", "-format", fmt]
-			with target.open("a") as file:
+			cmd1, cmd2 = ["epost", "-db", db], ["efetch", "-format", fmt]
+
+			filenames = []
+			if path_idx.exists():
+				with sqlite3.connect(path_idx) as conn:
+					rows = conn.execute("SELECT name FROM file_data ORDER BY file_number").fetchall()
+					filenames = [repo.parent / row[0] for row in rows]
+
+			path_rec = repo.with_suffix(f".{len(filenames)}.{ext}")
+			with path_rec.open("w") as file:
 				with Popen(cmd1, **kwargs) as pipe1, Popen(cmd2, **kwargs) as pipe2:
 					stdout, stderr = pipe1.communicate("\n".join(batch))
 					stdout, stderr = pipe2.communicate(stdout)
 					print(stdout, file=file)
+
+			path_idx_tmp = path_idx.with_suffix(".tmp")
+			filenames += [str(path_rec)]
+			SeqIO.index_db(str(path_idx_tmp), filenames=filenames, format=fmt)
+			with sqlite3.connect(path_idx_tmp) as conn:
+				conn.execute(
+					"INSERT INTO meta_data VALUES ('db', ?), ('term', ?), ('ext', ?)",
+					(db, term, ext)
+				)
+			path_idx_tmp.replace(path_idx)
 
 	return 0
 

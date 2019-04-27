@@ -11,9 +11,9 @@ from Bio import Entrez, SeqIO
 from Bio.bgzf import BgzfWriter
 
 ext_to_fmt = {
+	"fas": "fasta",
 	"faa": "fasta",
 	"fna": "fasta",
-	"fas": "fasta",
 	"fasta": "fasta",
 	"gbk": "genbank",
 	"genbank": "genbank"
@@ -32,6 +32,29 @@ def batchify(entries, size=10):
 		yield batch
 
 
+def get_index_paths(path_idx):
+	filenames = []
+
+	if path_idx.exists():
+		with sqlite3.connect(path_idx) as conn:
+			rows = conn.execute("SELECT name FROM file_data ORDER BY file_number").fetchall()
+			filenames = [path_idx.parent / row[0] for row in rows]
+
+	return filenames
+
+
+def reindex(path_idx, filenames, fmt, db, term, ext):
+	path_idx_tmp = path_idx.with_suffix(".tmp")
+	path_idx_tmp.exists() and path_idx_tmp.unlink()
+	SeqIO.index_db(str(path_idx_tmp), filenames=filenames, format=fmt)
+	with sqlite3.connect(path_idx_tmp) as conn:
+		conn.execute(
+			"INSERT INTO meta_data VALUES ('db', ?), ('term', ?), ('ext', ?)",
+			(db, term, ext)
+		)
+	path_idx_tmp.replace(path_idx)
+
+
 def parse_argv(argv):
 	parser = ArgumentParser(
 		description="repo auto util",
@@ -47,6 +70,12 @@ def parse_argv(argv):
 	parser.add_argument(
 		"-fmt", "--fmt", "-format", "--format",
 		default="fasta"
+	)
+	parser.add_argument(
+		"-cache", "--cache", nargs="+"
+	)
+	parser.add_argument(
+		"-cache-fmt", "--cache-fmt", default="fasta"
 	)
 	parser.add_argument(
 		"-redo", "--redo", action="store_true"
@@ -98,12 +127,20 @@ def main(argv):
 
 	path_idx = repo.with_suffix(".idx")
 
+	# load cache
+	cache = {}
+	if args.cache:
+		cache = SeqIO.index_db(":memory:", filenames=args.cache, format=ext_to_fmt[args.cache_fmt])
+
+	# redo or load metadata
 	meta, files, accs = {}, [], set()
 	if args.redo:
-		path_idx.exists() and path_idx.unlink() and print("unlink: ", str(path_idx))
-		for path in path_idx.parent.glob(f"{repo}.[0-9].{ext}.bgz"):
+		for path in get_index_paths(path_idx):
 			print("unlink: ", str(path))
 			path.unlink()
+		if path_idx.exists():
+			print("unlink: ", str(path_idx))
+			path_idx.unlink()
 	elif path_idx.exists():
 		with sqlite3.connect(path_idx) as conn:
 			meta = dict(conn.execute("SELECT * FROM meta_data").fetchall())
@@ -126,8 +163,23 @@ def main(argv):
 		record = Entrez.read(file)
 		accs = set(record["IdList"]) - accs
 
-	# accession diff
+	# accession diff length
 	print("new: ", len(accs), file=sys.stderr)
+
+	keys = accs & set(cache)
+	accs -= keys
+	print("cached:", len(keys), file=sys.stderr)
+	print("download:", len(accs), file=sys.stderr)
+
+	# update from cache
+	if keys:
+		filenames = list(map(str, get_index_paths(path_idx)))
+		filenames += [str(path_idx.with_suffix(f".{len(filenames)}.{ext}.bgz"))]
+
+		with BgzfWriter(filenames[-1]) as file:
+			SeqIO.write((cache[key] for key in cache), file, fmt)
+
+		reindex(path_idx, filenames, fmt, db, term, ext)
 
 	if accs:
 		# cat file | epost -db db | efetch -format fmt > target
@@ -136,28 +188,16 @@ def main(argv):
 			kwargs = dict(stdin=PIPE, stdout=PIPE, universal_newlines=True)
 			cmd1, cmd2 = ["epost", "-db", db], ["efetch", "-format", fmt]
 
-			filenames = []
-			if path_idx.exists():
-				with sqlite3.connect(path_idx) as conn:
-					rows = conn.execute("SELECT name FROM file_data ORDER BY file_number").fetchall()
-					filenames = [repo.parent / row[0] for row in rows]
+			filenames = list(map(str, get_index_paths(path_idx)))
+			filenames += [str(path_idx.with_suffix(f".{len(filenames)}.{ext}.bgz"))]
 
-			path_rec = repo.with_suffix(f".{len(filenames)}.{ext}.bgz")
-			with BgzfWriter(str(path_rec)) as file:
+			with BgzfWriter(filenames[-1]) as file:
 				with Popen(cmd1, **kwargs) as pipe1, Popen(cmd2, **kwargs) as pipe2:
 					stdout, stderr = pipe1.communicate("\n".join(batch))
 					stdout, stderr = pipe2.communicate(stdout)
 					print(stdout, file=file)
 
-			path_idx_tmp = path_idx.with_suffix(".tmp")
-			filenames += [str(path_rec)]
-			SeqIO.index_db(str(path_idx_tmp), filenames=filenames, format=fmt)
-			with sqlite3.connect(path_idx_tmp) as conn:
-				conn.execute(
-					"INSERT INTO meta_data VALUES ('db', ?), ('term', ?), ('ext', ?)",
-					(db, term, ext)
-				)
-			path_idx_tmp.replace(path_idx)
+			reindex(path_idx, filenames, fmt, db, term, ext)
 
 	return 0
 

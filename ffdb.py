@@ -7,10 +7,10 @@ from pathlib import Path
 from signal import signal, SIGPIPE, SIG_DFL
 from subprocess import PIPE, Popen
 
-from Bio import Entrez
-from Bio import SeqIO
+from Bio import Entrez, SeqIO
+from Bio.bgzf import BgzfWriter
 
-formats = {
+ext_to_fmt = {
 	"faa": "fasta",
 	"fna": "fasta",
 	"fas": "fasta",
@@ -49,9 +49,6 @@ def parse_argv(argv):
 		default="fasta"
 	)
 	parser.add_argument(
-		"-ext", "--ext", "-extension", "--extension"
-	)
-	parser.add_argument(
 		"-redo", "--redo", action="store_true"
 	)
 	# remote
@@ -84,8 +81,6 @@ def parse_argv(argv):
 
 	args = parser.parse_args(argv)
 
-	args.ext = args.ext or args.fmt
-
 	return args
 
 
@@ -95,8 +90,8 @@ def main(argv):
 	Entrez.email = args.email
 
 	repo = args.repo
-	fmt = formats[args.fmt]
-	ext = args.ext or fmt
+	ext = args.fmt
+	fmt = ext_to_fmt[ext]
 
 	db = args.db
 	term = args.term
@@ -106,7 +101,7 @@ def main(argv):
 	meta, files, accs = {}, [], set()
 	if args.redo:
 		path_idx.exists() and path_idx.unlink() and print("unlink: ", str(path_idx))
-		for path in path_idx.parent.glob(f"{repo}.[0-9].{ext}"):
+		for path in path_idx.parent.glob(f"{repo}.[0-9].{ext}.bgz"):
 			print("unlink: ", str(path))
 			path.unlink()
 	elif path_idx.exists():
@@ -116,7 +111,7 @@ def main(argv):
 
 	db = meta.get("db", db)
 	fmt = meta.get("format", fmt)
-	ext = meta.get("extension", ext)
+	ext = meta.get("ext", ext)
 	term = meta.get("term", term)
 
 	# get the number of remote accessions
@@ -147,8 +142,8 @@ def main(argv):
 					rows = conn.execute("SELECT name FROM file_data ORDER BY file_number").fetchall()
 					filenames = [repo.parent / row[0] for row in rows]
 
-			path_rec = repo.with_suffix(f".{len(filenames)}.{ext}")
-			with path_rec.open("w") as file:
+			path_rec = repo.with_suffix(f".{len(filenames)}.{ext}.bgz")
+			with BgzfWriter(str(path_rec)) as file:
 				with Popen(cmd1, **kwargs) as pipe1, Popen(cmd2, **kwargs) as pipe2:
 					stdout, stderr = pipe1.communicate("\n".join(batch))
 					stdout, stderr = pipe2.communicate(stdout)

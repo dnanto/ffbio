@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os.path
 import sqlite3
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -47,7 +46,7 @@ def parse_argv(argv):
 		"-no-version", "--no-version", dest="no_ver", action="store_true"
 	)
 	parser.add_argument(
-		"-fmt-idx", "--fmt-idx", default="fasta"
+		"-fmt-idx", "--fmt-idx"
 	)
 	parser.add_argument(
 		"-fmt-out", "--fmt-out", default="fasta"
@@ -61,7 +60,6 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 
-	args.fmt_idx = None if os.path.exists(args.index) else args.fmt_idx
 	records = SeqIO.index_db(args.index, filenames=args.filenames, format=args.fmt_idx)
 
 	keys = list(accverize(args.index, args.keys)) if args.keys and args.no_ver else args.keys

@@ -2,10 +2,9 @@
 
 import sqlite3
 import sys
+from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from signal import signal, SIGPIPE, SIG_DFL
-
-from Bio import SeqIO
 
 
 def accverize(index, keys):
@@ -40,6 +39,9 @@ def parse_argv(argv):
 		help="list of strings specifying file(s) to be indexed"
 	)
 	parser.add_argument(
+		"-all", "-all", "-dump", "--dump", dest="all", action="store_true"
+	)
+	parser.add_argument(
 		"-accessions", "--accessions", dest="keys", nargs="+"
 	)
 	parser.add_argument(
@@ -60,12 +62,16 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 
-	records = SeqIO.index_db(args.index, filenames=args.filenames, format=args.fmt_idx)
+	db = SeqIO.index_db(args.index, filenames=args.filenames, format=args.fmt_idx)
 
-	keys = list(accverize(args.index, args.keys)) if args.keys and args.no_ver else args.keys
+	records = []
+	if args.all:
+		records = db.values()
+	elif args.keys:
+		keys = accverize(args.index, args.keys) if args.no_ver else args.keys
+		records = (db[key] for key in keys)
 
-	if keys:
-		SeqIO.write((records[key] for key in keys), sys.stdout, args.fmt_out)
+	SeqIO.write(records, sys.stdout, args.fmt_out)
 
 	return 0
 

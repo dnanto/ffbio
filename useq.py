@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import sys
+from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from collections import OrderedDict
 from itertools import groupby
-from os.path import splitext
+from pathlib import Path
 from signal import signal, SIGPIPE, SIG_DFL
 
-from Bio import SeqIO
 from Bio.SeqUtils.CheckSum import seguid
 
 
@@ -26,16 +26,11 @@ def parse_argv(argv):
 		"-fmt", "--fmt", default="fasta"
 	)
 	parser.add_argument(
-		"-echo", "--echo", action="store_true"
-	)
-	parser.add_argument(
-		"-pfx", "--pfx", "-prefix", "--prefix",
+		"-map", "--map", type=Path,
 		help="the path prefix for the output files"
 	)
 
 	args = parser.parse_args(argv)
-	args.pfx = args.pfx or args.file.name
-	args.echo = args.file.name == "<stdin>"
 
 	return args
 
@@ -51,21 +46,18 @@ def main(argv):
 		)
 
 	# map unique sequence index to unique hash
-	idx_to_key = OrderedDict()
-	with open(args.pfx + ".tsv", "w") as file:
-		print("idx", "key", "id", "description", sep="\t", file=file)
-		idx_width = len(str(len(records)))
-		for idx, ele in enumerate(records.items(), start=1):
-			idx, key, val = f"{idx:{idx_width}d}", ele[0], ele[1]
-			idx_to_key[idx] = key
-			for record in val:
-				print(idx, key, record.id, record.description, sep="\t", file=file)
-				record.id, record.description = idx, ""
+	if args.map:
+		with args.map.open("w") as file:
+			width = len(str(len(records)))
+			print("idx", "key", "id", "description", sep="\t", file=file)
+			for idx, ele in enumerate(records.items(), start=1):
+				idx, key, val = f"{idx:0{width}d}", ele[0], ele[1]
+				for record in val:
+					print(idx, key, record.id, record.description, sep="\t", file=file)
+					record.id, record.description = idx, ""
 
 	# output unique sequences
-	fname = args.file.name
-	file = sys.stdout if args.echo else (args.pfx + "." + splitext(fname)[-1].lstrip("."))
-	SeqIO.write((records[val][0] for val in idx_to_key.values()), file, args.fmt)
+	SeqIO.write((val[0] for val in records.values()), sys.stdout, args.fmt)
 
 	return 0
 

@@ -2,7 +2,7 @@
 
 import sqlite3
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
@@ -23,8 +23,29 @@ def accverize(index, keys):
 				""",
 				(key,)
 			)
-			yield curs.fetchone()[0]
+			result = curs.fetchone()
+			yield result[0] if result and len(result) > 0 else key
+
 		curs.close()
+
+
+def keygetter(db, keys, keyerror=False):
+	for key in keys:
+		val = db.get(key)
+		if val:
+			yield val
+		elif keyerror:
+			raise KeyError
+
+
+def main_query(db, keys, args):
+	keys = accverize(args.index, keys) if args.no_ver else keys
+	records = keygetter(db, keys, keyerror=args.keyerror)
+	if args.descriptions:
+		for record in records:
+			print(record.description)
+	else:
+		SeqIO.write(records, sys.stdout, args.fmt_out)
 
 
 def parse_argv(argv):
@@ -49,16 +70,30 @@ def parse_argv(argv):
 		help="the flag to dump all of the records"
 	)
 	parser.add_argument(
-		"-accessions", "--accessions",
-		dest="keys",
+		"-descriptions", "--descriptions", "-headers", "--headers",
+		action="store_true",
+		help="the flag to only output the sequence descriptions"
+	)
+	parser.add_argument(
+		"-entry", "--entry", "-accessions", "--accessions",
 		nargs="+",
 		help="the accessions to retrieve"
+	)
+	parser.add_argument(
+		"-entry-batch", "--entry-batch",
+		type=FileType(),
+		help="the file of accessions to retrieve"
+	)
+	parser.add_argument(
+		"-keyerror", "--keyerror",
+		action="store_true",
+		help="the flag to exit on key error (if the accession isn't found)"
 	)
 	parser.add_argument(
 		"-no-version", "--no-version",
 		dest="no_ver",
 		action="store_true",
-		help="the flag to indicate that the accessions are missing a version "
+		help="the flag to indicate that the accessions are missing a version"
 	)
 	parser.add_argument(
 		"-fmt-idx", "--fmt-idx",
@@ -80,14 +115,14 @@ def main(argv):
 
 	db = SeqIO.index_db(args.index, filenames=args.filenames, format=args.fmt_idx)
 
-	records = []
 	if args.all:
-		records = db.values()
-	elif args.keys:
-		keys = accverize(args.index, args.keys) if args.no_ver else args.keys
-		records = (db[key] for key in keys)
-
-	SeqIO.write(records, sys.stdout, args.fmt_out)
+		main_query(db, db.keys(), args)
+	else:
+		if args.entry:
+			main_query(db, args.entry, args)
+		if args.entry_batch:
+			with args.entry_batch as file:
+				main_query(db, map(str, file), args)
 
 	return 0
 

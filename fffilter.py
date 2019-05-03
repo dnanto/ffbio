@@ -58,8 +58,8 @@ def main(argv):
 		base = int(rng[0])
 		if args.percentage:
 			rng = range(
-				int(base - base * float(rng[1]) / 100),
-				int(base + base * float(rng[2]) / 100)
+				int(base - base * float(rng[2]) / 100),
+				int(base + base * float(rng[1]) / 100)
 			)
 		else:
 			rng = range(base - int(rng[1]), base + int(rng[2]))

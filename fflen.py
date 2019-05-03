@@ -11,20 +11,29 @@ from Bio import SeqIO
 
 def parse_argv(argv):
 	parser = ArgumentParser(
+		description="compute the length of each record in the file",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
 
 	parser.add_argument(
-		"file", type=FileType()
+		"file", type=FileType(),
+		help="the sequence file"
 	)
 	parser.add_argument(
-		"-fmt", "--fmt", "-format", "--format", default="fasta"
+		"-fmt", "--fmt", "-format", "--format",
+		default="fasta",
+		help="the sequence file format"
 	)
 	parser.add_argument(
-		"-separator", "--separator", dest="sep", default="\t"
+		"-separator", "--separator",
+		dest="sep",
+		default="\t",
+		help="the table delimiter, default is the tab character"
 	)
 	parser.add_argument(
-		"-summary", "--summary", "-stats", "--stats", action="store_true"
+		"-summary", "--summary", "-stats", "--stats",
+		action="store_true",
+		help="the flag to compute basic summary statistics"
 	)
 
 	args = parser.parse_args(argv)

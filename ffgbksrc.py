@@ -43,7 +43,7 @@ def parse_argv(argv):
 		"-separator", "--separator",
 		dest="sep",
 		default="\t",
-		help="the table delimiter"
+		help="the table delimiter, the default is a tab character"
 	)
 
 	args = parser.parse_args(argv)

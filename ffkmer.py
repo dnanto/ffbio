@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
-from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from signal import signal, SIGPIPE, SIG_DFL
+
+from Bio import SeqIO
 
 
 def kmerize(seq, k=2, step=1):
@@ -12,6 +13,7 @@ def kmerize(seq, k=2, step=1):
 
 def parse_argv(argv):
 	parser = ArgumentParser(
+		description="calculate the set of k-mers",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
 
@@ -21,13 +23,21 @@ def parse_argv(argv):
 		help="the sequence file"
 	)
 	parser.add_argument(
-		"size", type=int
+		"-fmt", "--fmt", "-format", "--format",
+		dest="fmt",
+		default="fasta",
+		help="the sequence file format"
 	)
 	parser.add_argument(
-		"-step", type=int, default=1
+		"size",
+		type=int,
+		help="the k-mer size"
 	)
 	parser.add_argument(
-		"-fmt", "--fmt", "-format", "--format", dest="fmt", default="fasta"
+		"-step",
+		type=int,
+		default=1,
+		help="the next position to scan in the sequence"
 	)
 
 	args = parser.parse_args(argv)

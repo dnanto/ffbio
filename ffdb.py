@@ -59,7 +59,7 @@ def reindex(path_idx, filenames, fmt, db, term, mdat, ext):
 
 def parse_argv(argv):
 	parser = ArgumentParser(
-		description="repo auto util",
+		description="update a repository of indexed sequence files",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
 
@@ -68,46 +68,51 @@ def parse_argv(argv):
 		type=Path,
 		help="the target file to create/update"
 	)
-
 	parser.add_argument(
 		"-fmt", "--fmt", "-format", "--format",
-		default="fasta"
+		default="fasta",
+		help="the sequence file format"
 	)
-
 	parser.add_argument(
 		"-db", "--db", "-database", "--database",
 		default="nuccore",
-		help="the database"
+		help="the NCBI database"
 	)
 	parser.add_argument(
-		"-term",
-		help="the term"
+		"-term", "--term",
+		help="the NCBI query term"
 	)
 	parser.add_argument(
-		"-no-mdat", "--no-mdat", action="store_true"
+		"-no-mdat", "--no-mdat",
+		action="store_true",
+		help="flag to disable adding last modified date to the query"
 	)
 	parser.add_argument(
 		"-email", "--email",
 		default="",
-		help="the e-mail"
+		help="the e-mail to identify yourself to NCBI (for politeness reasons)"
 	)
-
 	parser.add_argument(
 		"-post-size", "--post-size",
 		type=int,
 		default=1000,
 		help="the number of records to post at a time"
 	)
-
 	parser.add_argument(
-		"-cache", "--cache", nargs="+"
+		"-cache", "--cache",
+		nargs="+",
+		help="the cache of sequence files to search prior to querying NCBI"
 	)
 	parser.add_argument(
-		"-cache-fmt", "--cache-fmt", default="fasta"
+		"-cache-fmt", "--cache-fmt",
+		default="fasta",
+		help="the sequence file format of the cache"
 	)
-
 	parser.add_argument(
-		"-redo", "--redo", action="store_true"
+		"-redo", "--redo",
+		action="store_true",
+		help="the flag to delete everything and redo"
+
 	)
 
 	args = parser.parse_args(argv)
@@ -162,10 +167,10 @@ def main(argv):
 	with Entrez.esearch(db=db, term=term, idtype="acc") as file:
 		record = Entrez.read(file)
 
-	# get the remote accessions
 	count = int(record["Count"])
 	print("count: ", count, file=sys.stderr)
 
+	# get the remote accessions
 	with Entrez.esearch(db=db, term=term, idtype="acc", retmax=count) as file:
 		record = Entrez.read(file)
 		accs = set(record["IdList"]) - accs

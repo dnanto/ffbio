@@ -16,7 +16,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 def parse_argv(argv):
 	parser = ArgumentParser(
-		description="compute the unique set of sequences",
+		description="combine FASTA and GFF3 files to create GenBank files",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
 
@@ -30,7 +30,7 @@ def parse_argv(argv):
 		"-gff",
 		nargs="+",
 		required=True,
-		help="the gff file"
+		help="the gff files"
 	)
 	parser.add_argument(
 		"-out", "--out",

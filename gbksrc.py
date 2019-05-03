@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
-from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from signal import signal, SIGPIPE, SIG_DFL
+
+from Bio import SeqIO
 
 
 def itemgetter(obj, *args):
@@ -17,19 +18,32 @@ def parse_keys(keys):
 
 
 def parse_argv(argv):
-	parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+	parser = ArgumentParser(
+		description="output a table of source feature metadata from a GenBank file",
+		formatter_class=ArgumentDefaultsHelpFormatter
+	)
 
 	parser.add_argument(
-		"file", type=FileType()
+		"file",
+		type=FileType(),
+		help="the sequence file"
 	)
 	parser.add_argument(
-		"keys", nargs="+"
+		"keys",
+		nargs="+",
+		help="the qualifier keys"
 	)
 	parser.add_argument(
-		"-fields", "-fields", "-header", "--header", dest="fields", action="store_true"
+		"-fields", "-fields", "-header", "--header",
+		dest="fields",
+		action="store_true",
+		help="the flag to output a header"
 	)
 	parser.add_argument(
-		"-separator", "--separator", dest="sep", default="\t"
+		"-separator", "--separator",
+		dest="sep",
+		default="\t",
+		help="the table delimiter"
 	)
 
 	args = parser.parse_args(argv)

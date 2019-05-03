@@ -24,7 +24,7 @@ def parse_cds(file):
 
 def parse_argv(argv):
 	parser = ArgumentParser(
-		description="compute the unique set of sequences",
+		description="extract CDS sequence records from a GenBank file",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
 

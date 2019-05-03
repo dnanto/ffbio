@@ -2,9 +2,10 @@
 
 import sqlite3
 import sys
-from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from signal import signal, SIGPIPE, SIG_DFL
+
+from Bio import SeqIO
 
 
 def accverize(index, keys):
@@ -27,7 +28,10 @@ def accverize(index, keys):
 
 
 def parse_argv(argv):
-	parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+	parser = ArgumentParser(
+		description="retrieve records from an indexed set of sequence files",
+		formatter_class=ArgumentDefaultsHelpFormatter
+	)
 
 	parser.add_argument(
 		"index",
@@ -36,22 +40,34 @@ def parse_argv(argv):
 	parser.add_argument(
 		"-filenames", "--filenames",
 		nargs="+",
-		help="list of strings specifying file(s) to be indexed"
+		help="the list of sequence files to index"
 	)
 	parser.add_argument(
-		"-all", "-all", "-dump", "--dump", dest="all", action="store_true"
+		"-all", "-all", "-dump", "--dump",
+		dest="all",
+		action="store_true",
+		help="the flag to dump all of the records"
 	)
 	parser.add_argument(
-		"-accessions", "--accessions", dest="keys", nargs="+"
+		"-accessions", "--accessions",
+		dest="keys",
+		nargs="+",
+		help="the accessions to retrieve"
 	)
 	parser.add_argument(
-		"-no-version", "--no-version", dest="no_ver", action="store_true"
+		"-no-version", "--no-version",
+		dest="no_ver",
+		action="store_true",
+		help="the flag to indicate that the accessions are missing a version "
 	)
 	parser.add_argument(
-		"-fmt-idx", "--fmt-idx"
+		"-fmt-idx", "--fmt-idx",
+		help="the sequence file format of the indexed files, optional if reloading"
 	)
 	parser.add_argument(
-		"-fmt-out", "--fmt-out", default="fasta"
+		"-fmt-out", "--fmt-out",
+		default="fasta",
+		help="the sequence file format (output)"
 	)
 
 	args = parser.parse_args(argv)

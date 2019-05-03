@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
 import sys
-from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from collections import OrderedDict
 from signal import signal, SIGPIPE, SIG_DFL
 
 import numpy as np
+from Bio import SeqIO
 
 
 def parse_argv(argv):
-	parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+	parser = ArgumentParser(
+		formatter_class=ArgumentDefaultsHelpFormatter
+	)
 
 	parser.add_argument(
 		"file", type=FileType()
@@ -22,7 +24,7 @@ def parse_argv(argv):
 		"-separator", "--separator", dest="sep", default="\t"
 	)
 	parser.add_argument(
-		"-summary", "--summary", action="store_true"
+		"-summary", "--summary", "-stats", "--stats", action="store_true"
 	)
 
 	args = parser.parse_args(argv)

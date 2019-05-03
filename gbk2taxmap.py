@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 
 import sys
-from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from signal import signal, SIGPIPE, SIG_DFL
 
+from Bio import SeqIO
+
 
 def parse_argv(argv):
-	parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+	parser = ArgumentParser(
+		description="create a taxid map suitable for makeblastdb from a GenBank file",
+		formatter_class=ArgumentDefaultsHelpFormatter
+	)
 
 	parser.add_argument(
-		"file", type=FileType()
+		"file",
+		type=FileType(),
+		help="the sequence file"
 	)
 
 	args = parser.parse_args(argv)

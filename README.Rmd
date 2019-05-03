@@ -31,7 +31,7 @@ Note: this repository is experimental...
 # Dependencies
 
 * The Pipfile lists the Python requirements.
-* [edirect](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/) should be in PATH.
+* The [edirect](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/) programs should be in PATH.
 * For convenience, add the script root directory to PATH.
 * Also, it is convenient to know the NCBI [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
 

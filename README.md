@@ -20,7 +20,7 @@ Note: this repository is experimental...
 # Dependencies
 
 * The Pipfile lists the Python requirements.
-* [edirect](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/) should be in PATH.
+* The [edirect](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/) programs should be in PATH.
 * For convenience, add the script root directory to PATH.
 * Also, it is convenient to know the NCBI [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
 
@@ -86,9 +86,9 @@ count:  246
 new:  246
 cached: 0
 download: 246
-download: KF493705.1 MG779323.1 MG779401.1 JQ063128.1 KT321961.1 ...
-download: KT595683.1 MG779376.1 MH046814.1 MG779385.1 JN885991.1 ...
-download: KT595677.1 KT599914.1 MG779340.1 MG779300.1 MG779391.1 ...
+download: KT595676.1 MG779360.1 MG779327.1 MG779407.1 KT321946.1 ...
+download: MG779338.1 MG779352.1 MG779391.1 MG779363.1 MG779393.1 ...
+download: JQ063164.1 MG779294.1 KT595679.1 MG779303.1 MG807319.1 ...
 ```
 
 List the results in the directory.
@@ -99,9 +99,9 @@ du -sh data/315393.*
 ```
 
 ```
-8.0M	data/315393.0.gbk.bgz
- 11M	data/315393.1.gbk.bgz
-6.0M	data/315393.2.gbk.bgz
+9.0M	data/315393.0.gbk.bgz
+ 10M	data/315393.1.gbk.bgz
+5.0M	data/315393.2.gbk.bgz
  36K	data/315393.idx
 ```
 

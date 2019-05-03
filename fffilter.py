@@ -62,7 +62,7 @@ def main(argv):
 				int(base + base * float(rng[1]) / 100)
 			)
 		else:
-			rng = range(base - int(rng[1]), base + int(rng[2]))
+			rng = range(base - int(rng[2]), base + int(rng[1]))
 
 	with args.file as file:
 		records = SeqIO.parse(file, args.fmt)

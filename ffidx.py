@@ -1,11 +1,27 @@
 #!/usr/bin/env python3
 
+import os
 import sqlite3
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from pathlib import Path
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
+
+
+def ffidx_search(index):
+	target = Path(index).expanduser().with_suffix(".idx")
+
+	if not target.exists():
+		for path in map(Path, os.environ.get("FFIDX", os.getcwd()).split(":")):
+			path_index = path.expanduser().joinpath(target)
+			print(path_index)
+			if path_index.exists():
+				target = path_index
+				break
+
+	return target
 
 
 def accverize(index, keys):
@@ -36,16 +52,6 @@ def keygetter(db, keys, keyerror=False):
 			yield val
 		elif keyerror:
 			raise KeyError
-
-
-def main_query(db, keys, args):
-	keys = accverize(args.index, keys) if args.no_ver else keys
-	records = keygetter(db, keys, keyerror=args.keyerror)
-	if args.descriptions:
-		for record in records:
-			print(record.description)
-	else:
-		SeqIO.write(records, sys.stdout, args.fmt_out)
 
 
 def parse_argv(argv):
@@ -113,16 +119,26 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 
-	db = SeqIO.index_db(args.index, filenames=args.filenames, format=args.fmt_idx)
+	index = str(ffidx_search(args.index))
 
+	db = SeqIO.index_db(index, filenames=args.filenames, format=args.fmt_idx)
+
+	keys = []
 	if args.all:
-		main_query(db, db.keys(), args)
+		keys = db.keys()
 	else:
 		if args.entry:
-			main_query(db, args.entry, args)
+			keys = args.entry
 		if args.entry_batch:
 			with args.entry_batch as file:
-				main_query(db, map(str, file), args)
+				keys += list(map(str.strip, file))
+
+	keys = accverize(index, keys) if args.no_ver else keys
+	records = keygetter(db, keys, keyerror=args.keyerror)
+	if args.descriptions:
+		print(*(record.description for record in records), sep="\n")
+	else:
+		SeqIO.write(records, sys.stdout, args.fmt_out)
 
 	return 0
 

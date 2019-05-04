@@ -57,13 +57,12 @@ def parse_argv(argv):
 		help="the query to filter records"
 	)
 	parser.add_argument(
-		"-fmt-i", "--fmt-i",
+		"-fmt-in", "--fmt-in",
 		default="fasta",
 		help="the sequence file format (input)"
 	)
 	parser.add_argument(
-		"-fmt-o", "--fmt-o",
-		default="fasta",
+		"-fmt-out", "--fmt-out",
 		help="the sequence file format (output)"
 	)
 
@@ -77,8 +76,11 @@ def main(argv):
 
 	cmd = parse_query(args.query)
 
+	fmt_in = args.fmt_in
+	fmt_out = args.fmt_out or args.fmt_in
+
 	with args.file as file:
-		SeqIO.write(filter(cmd, SeqIO.parse(file, args.fmt_i)), sys.stdout, args.fmt_o)
+		SeqIO.write(filter(cmd, SeqIO.parse(file, fmt_in)), sys.stdout, fmt_out)
 
 	return 0
 

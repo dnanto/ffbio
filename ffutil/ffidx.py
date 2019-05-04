@@ -93,7 +93,6 @@ def parse_argv(argv):
 	)
 	parser.add_argument(
 		"-fmt-out", "--fmt-out",
-		default="fasta",
 		help="the sequence file format (output)"
 	)
 
@@ -108,6 +107,12 @@ def main(argv):
 	index = str(ffidx_search(args.index))
 
 	db = SeqIO.index_db(index, filenames=args.filenames, format=args.fmt_idx)
+
+	with sqlite3.connect(index) as conn:
+		meta = dict(conn.execute("SELECT * FROM meta_data").fetchall())
+		fmt_idx = meta["format"]
+
+	fmt_out = args.fmt_out or fmt_idx
 
 	keys = []
 	if args.all:
@@ -124,7 +129,7 @@ def main(argv):
 	if args.descriptions:
 		print(*(record.description for record in records), sep="\n")
 	else:
-		SeqIO.write(records, sys.stdout, args.fmt_out)
+		SeqIO.write(records, sys.stdout, fmt_out)
 
 	return 0
 

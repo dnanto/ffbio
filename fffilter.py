@@ -38,10 +38,7 @@ def parse_query(query):
 		tokens = tokens[1].strip().split(" ", maxsplit=1)
 		cmd = lambda rec: re.search(tokens[1].strip(), getattr(rec, tokens[0].strip()))
 
-	if query.strip()[0] in "Nn":
-		cmd = lambda x: not x
-
-	return cmd
+	return (lambda x: not cmd(x)) if query.strip()[0] in "Nn" else cmd
 
 
 def parse_argv(argv):
@@ -77,9 +74,8 @@ def main(argv):
 
 	with args.file as file:
 		records = SeqIO.parse(file, args.fmt)
-		for record in records:
-			if cmd(record):
-				print(record.description)
+		for record in filter(cmd, records):
+			print(record.description)
 
 	return 0
 

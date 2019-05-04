@@ -23,6 +23,19 @@ formats = {
 }
 
 
+def ffidx_search(index):
+	target = Path(index).expanduser().with_suffix(".idx")
+
+	if not target.exists():
+		for path in map(Path, os.environ.get("FFIDX", os.getcwd()).split(":")):
+			path_index = path.expanduser().joinpath(target)
+			if path_index.exists():
+				target = path_index
+				break
+
+	return target
+
+
 def batchify(entries, size=10):
 	batch = []
 	for i, e in enumerate(entries, start=1):
@@ -133,7 +146,8 @@ def main(argv):
 	db = args.db
 	term = args.term
 
-	path_idx = repo.with_suffix(".idx")
+	path_idx = ffidx_search(repo)
+	
 	os.makedirs(path_idx.parent, exist_ok=True)
 
 	# load cache

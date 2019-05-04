@@ -35,6 +35,12 @@ def parse_argv(argv):
 		action="store_true",
 		help="the flag to compute basic summary statistics"
 	)
+	parser.add_argument(
+		"-fields", "-fields", "-header", "--header",
+		dest="fields",
+		action="store_true",
+		help="the flag to output a header"
+	)
 
 	args = parser.parse_args(argv)
 
@@ -59,6 +65,7 @@ def main(argv):
 			)
 			print(*(args.sep.join(item) for item in results.items()), sep="\n")
 		else:
+			args.fields and print("id", "description", "length", sep=args.sep)
 			for record in records:
 				print(record.id, record.description, len(record), sep=args.sep)
 

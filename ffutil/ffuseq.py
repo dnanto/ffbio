@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import sys
-from Bio import SeqIO
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from collections import OrderedDict
 from itertools import groupby
 from pathlib import Path
 from signal import signal, SIGPIPE, SIG_DFL
 
+from Bio import SeqIO
 from Bio.SeqUtils.CheckSum import seguid
 
 

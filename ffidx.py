@@ -16,7 +16,6 @@ def ffidx_search(index):
 	if not target.exists():
 		for path in map(Path, os.environ.get("FFIDX", os.getcwd()).split(":")):
 			path_index = path.expanduser().joinpath(target)
-			print(path_index)
 			if path_index.exists():
 				target = path_index
 				break

@@ -1,11 +1,47 @@
 #!/usr/bin/env python3
 
+import operator as op
 import re
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
+
+ops = {
+	"<": op.lt,
+	"<=": op.le,
+	"=": op.eq,
+	"==": op.eq,
+	"!=": op.eq,
+	">=": op.ge,
+	">": op.gt,
+	"in": op.contains,
+}
+
+
+def parse_query(query):
+	cmd = None
+
+	tokens = query.strip().split(" ", maxsplit=1)
+
+	if re.match(r"\s*N?LEN", tokens[0], re.I):
+		match = re.search(r"([><=]+|in)\s*((\d+)\s*-\s*(\d+)|\d+)", tokens[1], re.I)
+		opkey = match.group(1).lower()
+		if opkey == "in":
+			rng = range(int(match.group(3)), int(match.group(4)) + 1)
+			cmd = lambda rec: ops[opkey](rng, len(rec))
+		else:
+			cmd = lambda rec: ops[opkey](len(rec), int(match.group(2)))
+
+	if re.match(r"\s*N?LIKE", tokens[0], re.I):
+		tokens = tokens[1].strip().split(" ", maxsplit=1)
+		cmd = lambda rec: re.search(tokens[1].strip(), getattr(rec, tokens[0].strip()))
+
+	if query.strip()[0] in "Nn":
+		cmd = lambda x: not x
+
+	return cmd
 
 
 def parse_argv(argv):
@@ -20,27 +56,13 @@ def parse_argv(argv):
 		help="the sequence file"
 	)
 	parser.add_argument(
+		"query",
+		help="the query to filter records"
+	)
+	parser.add_argument(
 		"-fmt", "--fmt", "-format", "--format",
 		default="fasta",
 		help="the sequence file format (input)"
-	)
-	parser.add_argument(
-		"-fmt-o", "--fmt-o",
-		default="fasta",
-		help="the sequence file format (output)"
-	)
-	parser.add_argument(
-		"-pattern",
-		help="the regex pattern to search headers"
-	)
-	parser.add_argument(
-		"-length",
-		help="the sequence length"
-	)
-	parser.add_argument(
-		"-percentage", "--percentage",
-		action="store_true",
-		help="the flag to use percentage bounds"
 	)
 
 	args = parser.parse_args(argv)
@@ -51,26 +73,13 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 
-	rng = args.length
-	if rng:
-		rng = rng.split(":", maxsplit=3)
-		rng += [0] * (3 - len(rng))
-		base = int(rng[0])
-		if args.percentage:
-			rng = range(
-				int(base - base * float(rng[2]) / 100),
-				int(base + base * float(rng[1]) / 100)
-			)
-		else:
-			rng = range(base - int(rng[2]), base + int(rng[1]))
+	cmd = parse_query(args.query)
 
 	with args.file as file:
 		records = SeqIO.parse(file, args.fmt)
-		if rng:
-			records = (rec for rec in records if len(rec) in rng)
-		if args.pattern:
-			records = (rec for rec in records if re.search(args.pattern, rec.description))
-		SeqIO.write(records, sys.stdout, args.fmt_o)
+		for record in records:
+			if cmd(record):
+				print(record.description)
 
 	return 0
 

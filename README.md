@@ -1,7 +1,7 @@
 ---
 title: "README"
 author: "dnanto"
-date: "May 03, 2019"
+date: "May 04, 2019"
 output: 
   html_document: 
     keep_md: yes
@@ -16,11 +16,53 @@ output:
 **ffdb** is a collection of scripts to work with flat-file sequence databases and help me complete my thesis.
 
 Note: this repository is experimental...
+Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.
 
 # Dependencies
 
+## Environment
+
+### PYTHONPATH
+
+Append the directory that has the package folder to PYTHONPATH.
+
+
+```r
+if (!exists("PYTHONPATH")) PYTHONPATH = getwd()
+Sys.setenv(PYTHONPATH = PYTHONPATH)
+```
+
+
+```bash
+echo ${PYTHONPATH/~/\~}
+```
+
+```
+~/Documents/thesis/github/ffdb
+```
+
+### FFIDX
+
+This is an optional environment variable similar to BLASTDB. It is a colon-separated list of absolute or relative paths to search for indexed sets of flat-files. The examples take advantage of this feature. Otherwise, it is possible to specify the path to the index to the script directly.
+
+
+```r
+Sys.setenv(FFIDX = file.path(getwd(), "data"))
+```
+
+
+```bash
+echo ${FFIDX/~/\~}
+```
+
+```
+~/Documents/thesis/github/ffdb/data
+```
+
+## Note
+
 * The Pipfile lists the Python requirements.
-* The [edirect](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/) programs should be in PATH.
+* The edirect programs should be in PATH; download them [here](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/).
 * For convenience, add the script root directory to PATH.
 * Also, it is convenient to know the NCBI [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
 
@@ -77,19 +119,23 @@ Initialize a repository of indexed GenBank files. Search NCBI for all *Mimivirus
 
 
 ```bash
-ffdb.py data/315393 -term 'txid315393[PORGN] AND biomol_genomic[PROP]' -fmt gbk -post 100
+ffdb.py data/315393 \
+  -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]' \
+  -fmt gbk -post 100
 ```
 
 ```
-term: txid315393[PORGN] AND biomol_genomic[PROP]
-count:  246
-new:  246
+term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]
+count:  237
+new:  237
 cached: 0
-download: 246
-download: KT595676.1 MG779360.1 MG779327.1 MG779407.1 KT321946.1 ...
-download: MG779338.1 MG779352.1 MG779391.1 MG779363.1 MG779393.1 ...
-download: JQ063164.1 MG779294.1 KT595679.1 MG779303.1 MG807319.1 ...
+download...
+download: JN885991.1 MH046816.1 KT595678.1 MG779328.1 KT321949.1 ...
+download: MG779400.1 JQ063126.1 KT595679.1 MG779342.1 KT321953.1 ...
+download: MG779407.1 MG779321.1 MG779351.1 MG779349.1 MG779336.1 ...
 ```
+
+Update the FFIDX environment variable.
 
 List the results in the directory.
 
@@ -111,15 +157,14 @@ Update the same repository.
 
 
 ```bash
-ffdb.py data/315393
+ffdb.py 315393
 ```
 
 ```
-term: txid315393[PORGN] AND biomol_genomic[PROP] AND 2019/05/03:3000[MDAT]
+term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] AND 2019/05/04:3000[MDAT]
 count:  0
 new:  0
 cached: 0
-download: 0
 ```
 
 ### Ex-2
@@ -128,15 +173,14 @@ Update the same repository, but disable the modified date limiter.
 
 
 ```bash
-ffdb.py data/315393 -no-mdat
+ffdb.py 315393 -no-mdat
 ```
 
 ```
-term: txid315393[PORGN] AND biomol_genomic[PROP]
-count:  246
+term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]
+count:  237
 new:  0
 cached: 0
-download: 0
 ```
 
 ## ffidx.py
@@ -150,8 +194,9 @@ ffidx.py -h
 
 ```
 usage: ffidx.py [-h] [-filenames FILENAMES [FILENAMES ...]] [-all]
-                [-accessions KEYS [KEYS ...]] [-no-version] [-fmt-idx FMT_IDX]
-                [-fmt-out FMT_OUT]
+                [-descriptions] [-entry ENTRY [ENTRY ...]]
+                [-entry-batch ENTRY_BATCH] [-keyerror] [-no-version]
+                [-fmt-idx FMT_IDX] [-fmt-out FMT_OUT]
                 index
 
 retrieve records from an indexed set of sequence files
@@ -165,8 +210,16 @@ optional arguments:
                         the list of sequence files to index (default: None)
   -all, -all, -dump, --dump
                         the flag to dump all of the records (default: False)
-  -accessions KEYS [KEYS ...], --accessions KEYS [KEYS ...]
+  -descriptions, --descriptions, -headers, --headers
+                        the flag to only output the sequence descriptions
+                        (default: False)
+  -entry ENTRY [ENTRY ...], --entry ENTRY [ENTRY ...], -accessions ENTRY [ENTRY ...], --accessions ENTRY [ENTRY ...]
                         the accessions to retrieve (default: None)
+  -entry-batch ENTRY_BATCH, --entry-batch ENTRY_BATCH
+                        the file of accessions to retrieve (default: None)
+  -keyerror, --keyerror
+                        the flag to exit on key error (if the accession isn't
+                        found) (default: False)
   -no-version, --no-version
                         the flag to indicate that the accessions are missing a
                         version (default: False)
@@ -174,7 +227,7 @@ optional arguments:
                         the sequence file format of the indexed files,
                         optional if reloading (default: None)
   -fmt-out FMT_OUT, --fmt-out FMT_OUT
-                        the sequence file format (output) (default: fasta)
+                        the sequence file format (output) (default: None)
 ```
 
 ### Ex-1
@@ -189,13 +242,9 @@ ls data/oantigen.[1-2].gbk.gz | \
 ```
 
 ```
->AF390573.1 Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence
-GCCATCCCACTCTGTGGTCGCAGAGCAAGCTCCCTCATGGAAAATAGCGTCAATGGGCCC
-GAAATCATCACCGGCCATGATCTGAGCTAGGAAGTCATCTCGATCCATATAGTCGGCGAT
---
->GU576499.1 Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence
-AAGGCGTCATGGACCCGAAATCATCACCAGCCATGATCTGAGCTAGGAAGTCATCTCGAT
-CCATATAGTCGGCGATCTGTAGGTCAACCAGATTTTTGAACTTACGACCATTTTTCAAAT
+     misc_feature    <1..>26128
+                     /note="O-antigen biosynthesis gene locus"
+     gene            119..229
 ```
 
 List the index.
@@ -221,13 +270,9 @@ ls data/oantigen.[1-2].gbk.gz | \
 ```
 
 ```
->AF390573.1 Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence
-GCCATCCCACTCTGTGGTCGCAGAGCAAGCTCCCTCATGGAAAATAGCGTCAATGGGCCC
-GAAATCATCACCGGCCATGATCTGAGCTAGGAAGTCATCTCGATCCATATAGTCGGCGAT
---
->GU576499.1 Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence
-AAGGCGTCATGGACCCGAAATCATCACCAGCCATGATCTGAGCTAGGAAGTCATCTCGAT
-CCATATAGTCGGCGATCTGTAGGTCAACCAGATTTTTGAACTTACGACCATTTTTCAAAT
+     misc_feature    <1..>26128
+                     /note="O-antigen biosynthesis gene locus"
+     gene            119..229
 ```
 
 ### Ex-3
@@ -236,7 +281,7 @@ Dump all sequences as GenBank records.
 
 
 ```bash
-ffidx.py data/oantigen.idx -dump -fmt-o gb | grep ^DEFINITION
+ffidx.py oantigen -dump -fmt-o gb | grep ^DEFINITION
 ```
 
 ```
@@ -301,30 +346,31 @@ fffilter.py -h
 ```
 
 ```
-usage: fffilter.py [-h] [-fmt FMT] [-fmt-o FMT_O] [-pattern PATTERN]
-                   [-length LENGTH] [-percentage]
-                   file
+usage: fffilter.py [-h] [-fmt-in FMT_IN] [-fmt-out FMT_OUT] file query
 
 filter sequence records by header and/or length
 
 positional arguments:
   file                  the sequence file
+  query                 the query to filter records
 
 optional arguments:
   -h, --help            show this help message and exit
-  -fmt FMT, --fmt FMT, -format FMT, --format FMT
+  -fmt-in FMT_IN, --fmt-in FMT_IN
                         the sequence file format (input) (default: fasta)
-  -fmt-o FMT_O, --fmt-o FMT_O
-                        the sequence file format (output) (default: fasta)
-  -pattern PATTERN      the regex pattern to search headers (default: None)
-  -length LENGTH        the sequence length (default: None)
-  -percentage, --percentage
-                        the flag to use percentage bounds (default: False)
+  -fmt-out FMT_OUT, --fmt-out FMT_OUT
+                        the sequence file format (output) (default: None)
 ```
 
-### Length Syntax
+### Query Syntax
 
-The length syntax is length:+:-, where length is the sequence length in bp, + is the upper bound, and - is the lower bound. If the ```-percentage``` flag is set then the bounds are interpreted as percentages in the range [0, 100].
+The length syntax is the LEN keyword + operator + number or range. Choose an operator: <, <=, =, ==, >=, >, IN. The range format is two numbers separated by a dash.
+
+The query syntax is the LIKE keyword + property + regex. The property is a [SeqRecord](http://biopython.org/DIST/docs/api/Bio.SeqRecord.SeqRecord-class.html) property.
+
+To negate the results, prepend an N to the keyword: NLEN, NLIKE.
+
+TODO: allow access to subproperties and fields, such as annotations and qualifiers...
 
 ### Ex-1
 
@@ -332,40 +378,54 @@ Filter sequences based on a regex pattern.
 
 
 ```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -pattern " CO[0-9]+ " | grep \>
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
 ```
 
 ```
->GU576498.1 Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus, partial sequence
->GU576499.1 Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence
+DEFINITION  Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus,
+DEFINITION  Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus,
+DEFINITION  Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus,
 ```
 
-### Ex-2
-
-Filter sequences based on length bounds: 30000 bp +/- 10%.
+Negate the previous search.
 
 
 ```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -len 30000:10:10 -per | grep \>
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
 ```
 
 ```
->AF390573.1 Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence
->GU576497.1 Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus, partial sequence
+DEFINITION  Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete
+DEFINITION  Vibrio cholerae genes for o-antigen synthesis, strain O22, complete
+DEFINITION  Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial
 ```
 
-### Ex-3
+### Ex-2
 
 Filter sequences based on length bounds: 45000 bp +/- 5000.
 
 
 ```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -len 45000:5000:5000 | grep \>
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
 ```
 
 ```
->AB012956.1 Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete cds
->AB012957.1 Vibrio cholerae genes for o-antigen synthesis, strain O22, complete cds
+LOCUS       AB012956               46721 bp    DNA     linear   BCT 16-OCT-1999
+LOCUS       AB012957               45993 bp    DNA     linear   BCT 16-OCT-1999
+```
+
+Negate the previous search.
+
+
+```bash
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
+```
+
+```
+LOCUS       AF390573               27552 bp    DNA     linear   BCT 08-MAY-2002
+LOCUS       GU576497               30443 bp    DNA     linear   BCT 25-JUL-2016
+LOCUS       GU576498               19487 bp    DNA     linear   BCT 25-JUL-2016
+LOCUS       GU576499               26128 bp    DNA     linear   BCT 01-APR-2011
 ```
 
 ## fflen.py
@@ -378,7 +438,7 @@ fflen.py -h
 ```
 
 ```
-usage: fflen.py [-h] [-fmt FMT] [-separator SEP] [-summary] file
+usage: fflen.py [-h] [-fmt FMT] [-separator SEP] [-summary] [-fields] file
 
 compute the length of each record in the file
 
@@ -395,6 +455,8 @@ optional arguments:
   -summary, --summary, -stats, --stats
                         the flag to compute basic summary statistics (default:
                         False)
+  -fields, -fields, -header, --header
+                        the flag to output a header (default: False)
 ```
 
 ### Ex-1

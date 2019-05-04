@@ -15,11 +15,8 @@ knitr::opts_chunk$set(
 	message = FALSE,
 	comment = ""
 )
-if (!exists("PATH"))
-{
-	PATH = system('source ~/.bash_profile && echo "$PATH"', intern = T)
-	Sys.setenv(PATH = PATH)
-}
+if (!exists("PATH")) PATH = system('source ~/.bash_profile && echo "$PATH"', intern = T)
+Sys.setenv(PATH = PATH)
 ```
 
 # Abstract
@@ -27,11 +24,41 @@ if (!exists("PATH"))
 **ffdb** is a collection of scripts to work with flat-file sequence databases and help me complete my thesis.
 
 Note: this repository is experimental...
+Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.
 
 # Dependencies
 
+## Environment
+
+### PYTHONPATH
+
+Append the directory that has the package folder to PYTHONPATH.
+
+```{r}
+if (!exists("PYTHONPATH")) PYTHONPATH = getwd()
+Sys.setenv(PYTHONPATH = PYTHONPATH)
+```
+
+```{bash}
+echo ${PYTHONPATH/~/\~}
+```
+
+### FFIDX
+
+This is an optional environment variable similar to BLASTDB. It is a colon-separated list of absolute or relative paths to search for indexed sets of flat-files. The examples take advantage of this feature. Otherwise, it is possible to specify the path to the index to the script directly.
+
+```{r}
+Sys.setenv(FFIDX = file.path(getwd(), "data"))
+```
+
+```{bash}
+echo ${FFIDX/~/\~}
+```
+
+## Note
+
 * The Pipfile lists the Python requirements.
-* The [edirect](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/) programs should be in PATH.
+* The edirect programs should be in PATH; download them [here](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/).
 * For convenience, add the script root directory to PATH.
 * Also, it is convenient to know the NCBI [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
 
@@ -50,8 +77,12 @@ ffdb.py -h
 Initialize a repository of indexed GenBank files. Search NCBI for all *Mimivirus* genomic DNA sequences.
 
 ```{bash}
-ffdb.py data/315393 -term 'txid315393[PORGN] AND biomol_genomic[PROP]' -fmt gbk -post 100
+ffdb.py data/315393 \
+  -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]' \
+  -fmt gbk -post 100
 ```
+
+Update the FFIDX environment variable.
 
 List the results in the directory.
 
@@ -64,7 +95,7 @@ du -sh data/315393.*
 Update the same repository.
 
 ```{bash}
-ffdb.py data/315393
+ffdb.py 315393
 ```
 
 ### Ex-2
@@ -72,7 +103,7 @@ ffdb.py data/315393
 Update the same repository, but disable the modified date limiter.
 
 ```{bash}
-ffdb.py data/315393 -no-mdat
+ffdb.py 315393 -no-mdat
 ```
 
 ## ffidx.py
@@ -114,7 +145,7 @@ ls data/oantigen.[1-2].gbk.gz | \
 Dump all sequences as GenBank records.
 
 ```{bash}
-ffidx.py data/oantigen.idx -dump -fmt-o gb | grep ^DEFINITION
+ffidx.py oantigen -dump -fmt-o gb | grep ^DEFINITION
 ```
 
 ## ffcds.py
@@ -141,32 +172,42 @@ The ```fffilter.py``` script filters for records with matching regex patterns an
 fffilter.py -h
 ```
 
-### Length Syntax
+### Query Syntax
 
-The length syntax is length:+:-, where length is the sequence length in bp, + is the upper bound, and - is the lower bound. If the ```-percentage``` flag is set then the bounds are interpreted as percentages in the range [0, 100].
+The length syntax is the LEN keyword + operator + number or range. Choose an operator: <, <=, =, ==, >=, >, IN. The range format is two numbers separated by a dash.
+
+The query syntax is the LIKE keyword + property + regex. The property is a [SeqRecord](http://biopython.org/DIST/docs/api/Bio.SeqRecord.SeqRecord-class.html) property.
+
+To negate the results, prepend an N to the keyword: NLEN, NLIKE.
+
+TODO: allow access to subproperties and fields, such as annotations and qualifiers...
 
 ### Ex-1
 
 Filter sequences based on a regex pattern.
 
 ```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -pattern " CO[0-9]+ " | grep \>
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
+```
+
+Negate the previous search.
+
+```{bash}
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
 ```
 
 ### Ex-2
 
-Filter sequences based on length bounds: 30000 bp +/- 10%.
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -len 30000:10:10 -per | grep \>
-```
-
-### Ex-3
-
 Filter sequences based on length bounds: 45000 bp +/- 5000.
 
 ```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -len 45000:5000:5000 | grep \>
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
+```
+
+Negate the previous search.
+
+```{bash}
+gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
 ```
 
 ## fflen.py

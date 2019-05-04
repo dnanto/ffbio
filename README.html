@@ -11,7 +11,7 @@
 
 <meta name="author" content="dnanto" />
 
-<meta name="date" content="2019-05-03" />
+<meta name="date" content="2019-05-04" />
 
 <title>README</title>
 
@@ -192,14 +192,17 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">README</h1>
 <h4 class="author">dnanto</h4>
-<h4 class="date">May 03, 2019</h4>
+<h4 class="date">May 04, 2019</h4>
 
 </div>
 
 <div id="TOC">
 <ul>
 <li><a href="#abstract">Abstract</a></li>
-<li><a href="#dependencies">Dependencies</a></li>
+<li><a href="#dependencies">Dependencies</a><ul>
+<li><a href="#environment">Environment</a></li>
+<li><a href="#note">Note</a></li>
+</ul></li>
 <li><a href="#scripts">Scripts</a><ul>
 <li><a href="#ffdb.py">ffdb.py</a></li>
 <li><a href="#ffidx.py">ffidx.py</a></li>
@@ -218,16 +221,37 @@ $(document).ready(function () {
 <div id="abstract" class="section level1">
 <h1>Abstract</h1>
 <p><strong>ffdb</strong> is a collection of scripts to work with flat-file sequence databases and help me complete my thesis.</p>
-<p>Note: this repository is experimental…</p>
+<p>Note: this repository is experimental… Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.</p>
 </div>
 <div id="dependencies" class="section level1">
 <h1>Dependencies</h1>
+<div id="environment" class="section level2">
+<h2>Environment</h2>
+<div id="pythonpath" class="section level3">
+<h3>PYTHONPATH</h3>
+<p>Append the directory that has the package folder to PYTHONPATH.</p>
+<pre class="r"><code>if (!exists(&quot;PYTHONPATH&quot;)) PYTHONPATH = getwd()
+Sys.setenv(PYTHONPATH = PYTHONPATH)</code></pre>
+<pre class="bash"><code>echo ${PYTHONPATH/~/\~}</code></pre>
+<pre><code>~/Documents/thesis/github/ffdb</code></pre>
+</div>
+<div id="ffidx" class="section level3">
+<h3>FFIDX</h3>
+<p>This is an optional environment variable similar to BLASTDB. It is a colon-separated list of absolute or relative paths to search for indexed sets of flat-files. The examples take advantage of this feature. Otherwise, it is possible to specify the path to the index to the script directly.</p>
+<pre class="r"><code>Sys.setenv(FFIDX = file.path(getwd(), &quot;data&quot;))</code></pre>
+<pre class="bash"><code>echo ${FFIDX/~/\~}</code></pre>
+<pre><code>~/Documents/thesis/github/ffdb/data</code></pre>
+</div>
+</div>
+<div id="note" class="section level2">
+<h2>Note</h2>
 <ul>
 <li>The Pipfile lists the Python requirements.</li>
-<li>The <a href="ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/">edirect</a> programs should be in PATH.</li>
+<li>The edirect programs should be in PATH; download them <a href="ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/">here</a>.</li>
 <li>For convenience, add the script root directory to PATH.</li>
 <li>Also, it is convenient to know the NCBI <a href="https://www.ncbi.nlm.nih.gov/books/NBK49540/">search field descriptions</a>.</li>
 </ul>
+</div>
 </div>
 <div id="scripts" class="section level1">
 <h1>Scripts</h1>
@@ -271,15 +295,18 @@ optional arguments:
 <div id="ex-1" class="section level3">
 <h3>Ex-1</h3>
 <p>Initialize a repository of indexed GenBank files. Search NCBI for all <em>Mimivirus</em> genomic DNA sequences.</p>
-<pre class="bash"><code>ffdb.py data/315393 -term 'txid315393[PORGN] AND biomol_genomic[PROP]' -fmt gbk -post 100</code></pre>
-<pre><code>term: txid315393[PORGN] AND biomol_genomic[PROP]
-count:  246
-new:  246
+<pre class="bash"><code>ffdb.py data/315393 \
+  -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]' \
+  -fmt gbk -post 100</code></pre>
+<pre><code>term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]
+count:  237
+new:  237
 cached: 0
-download: 246
-download: KT595676.1 MG779360.1 MG779327.1 MG779407.1 KT321946.1 ...
-download: MG779338.1 MG779352.1 MG779391.1 MG779363.1 MG779393.1 ...
-download: JQ063164.1 MG779294.1 KT595679.1 MG779303.1 MG807319.1 ...</code></pre>
+download...
+download: JN885991.1 MH046816.1 KT595678.1 MG779328.1 KT321949.1 ...
+download: MG779400.1 JQ063126.1 KT595679.1 MG779342.1 KT321953.1 ...
+download: MG779407.1 MG779321.1 MG779351.1 MG779349.1 MG779336.1 ...</code></pre>
+<p>Update the FFIDX environment variable.</p>
 <p>List the results in the directory.</p>
 <pre class="bash"><code>du -sh data/315393.*</code></pre>
 <pre><code>9.0M    data/315393.0.gbk.bgz
@@ -290,22 +317,20 @@ download: JQ063164.1 MG779294.1 KT595679.1 MG779303.1 MG807319.1 ...</code></pre
 <div id="ex-2" class="section level3">
 <h3>Ex-2</h3>
 <p>Update the same repository.</p>
-<pre class="bash"><code>ffdb.py data/315393</code></pre>
-<pre><code>term: txid315393[PORGN] AND biomol_genomic[PROP] AND 2019/05/03:3000[MDAT]
+<pre class="bash"><code>ffdb.py 315393</code></pre>
+<pre><code>term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] AND 2019/05/04:3000[MDAT]
 count:  0
 new:  0
-cached: 0
-download: 0</code></pre>
+cached: 0</code></pre>
 </div>
 <div id="ex-2-1" class="section level3">
 <h3>Ex-2</h3>
 <p>Update the same repository, but disable the modified date limiter.</p>
-<pre class="bash"><code>ffdb.py data/315393 -no-mdat</code></pre>
-<pre><code>term: txid315393[PORGN] AND biomol_genomic[PROP]
-count:  246
+<pre class="bash"><code>ffdb.py 315393 -no-mdat</code></pre>
+<pre><code>term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]
+count:  237
 new:  0
-cached: 0
-download: 0</code></pre>
+cached: 0</code></pre>
 </div>
 </div>
 <div id="ffidx.py" class="section level2">
@@ -313,8 +338,9 @@ download: 0</code></pre>
 <p>The <code>ffidx.py</code> script creates and/or queries an indexed set of sequence files created via the <a href="https://biopython.org/DIST/docs/api/Bio.SeqIO-module.html#index_db">index_db</a> method.</p>
 <pre class="bash"><code>ffidx.py -h</code></pre>
 <pre><code>usage: ffidx.py [-h] [-filenames FILENAMES [FILENAMES ...]] [-all]
-                [-accessions KEYS [KEYS ...]] [-no-version] [-fmt-idx FMT_IDX]
-                [-fmt-out FMT_OUT]
+                [-descriptions] [-entry ENTRY [ENTRY ...]]
+                [-entry-batch ENTRY_BATCH] [-keyerror] [-no-version]
+                [-fmt-idx FMT_IDX] [-fmt-out FMT_OUT]
                 index
 
 retrieve records from an indexed set of sequence files
@@ -328,8 +354,16 @@ optional arguments:
                         the list of sequence files to index (default: None)
   -all, -all, -dump, --dump
                         the flag to dump all of the records (default: False)
-  -accessions KEYS [KEYS ...], --accessions KEYS [KEYS ...]
+  -descriptions, --descriptions, -headers, --headers
+                        the flag to only output the sequence descriptions
+                        (default: False)
+  -entry ENTRY [ENTRY ...], --entry ENTRY [ENTRY ...], -accessions ENTRY [ENTRY ...], --accessions ENTRY [ENTRY ...]
                         the accessions to retrieve (default: None)
+  -entry-batch ENTRY_BATCH, --entry-batch ENTRY_BATCH
+                        the file of accessions to retrieve (default: None)
+  -keyerror, --keyerror
+                        the flag to exit on key error (if the accession isn't
+                        found) (default: False)
   -no-version, --no-version
                         the flag to indicate that the accessions are missing a
                         version (default: False)
@@ -337,20 +371,16 @@ optional arguments:
                         the sequence file format of the indexed files,
                         optional if reloading (default: None)
   -fmt-out FMT_OUT, --fmt-out FMT_OUT
-                        the sequence file format (output) (default: fasta)</code></pre>
+                        the sequence file format (output) (default: None)</code></pre>
 <div id="ex-1-1" class="section level3">
 <h3>Ex-1</h3>
 <p>Create an index using multiple multi-GenBank files and query some accessions.</p>
 <pre class="bash"><code>ls data/oantigen.[1-2].gbk.gz | \
   xargs ffidx.py data/oantigen.idx -acc AF390573.1 GU576499.1 -fmt-idx gb -filenames | \
   grep -A 2 \&gt;</code></pre>
-<pre><code>&gt;AF390573.1 Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence
-GCCATCCCACTCTGTGGTCGCAGAGCAAGCTCCCTCATGGAAAATAGCGTCAATGGGCCC
-GAAATCATCACCGGCCATGATCTGAGCTAGGAAGTCATCTCGATCCATATAGTCGGCGAT
---
-&gt;GU576499.1 Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence
-AAGGCGTCATGGACCCGAAATCATCACCAGCCATGATCTGAGCTAGGAAGTCATCTCGAT
-CCATATAGTCGGCGATCTGTAGGTCAACCAGATTTTTGAACTTACGACCATTTTTCAAAT</code></pre>
+<pre><code>     misc_feature    &lt;1..&gt;26128
+                     /note=&quot;O-antigen biosynthesis gene locus&quot;
+     gene            119..229</code></pre>
 <p>List the index.</p>
 <pre class="bash"><code>du -sh data/oantigen.idx</code></pre>
 <pre><code> 20K    data/oantigen.idx</code></pre>
@@ -361,18 +391,14 @@ CCATATAGTCGGCGATCTGTAGGTCAACCAGATTTTTGAACTTACGACCATTTTTCAAAT</code></pre>
 <pre class="bash"><code>ls data/oantigen.[1-2].gbk.gz | \
   xargs ffidx.py &quot;:memory:&quot; -acc AF390573.1 GU576499.1 -fmt-idx gb -filenames | \
   grep -A 2 \&gt;</code></pre>
-<pre><code>&gt;AF390573.1 Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence
-GCCATCCCACTCTGTGGTCGCAGAGCAAGCTCCCTCATGGAAAATAGCGTCAATGGGCCC
-GAAATCATCACCGGCCATGATCTGAGCTAGGAAGTCATCTCGATCCATATAGTCGGCGAT
---
-&gt;GU576499.1 Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence
-AAGGCGTCATGGACCCGAAATCATCACCAGCCATGATCTGAGCTAGGAAGTCATCTCGAT
-CCATATAGTCGGCGATCTGTAGGTCAACCAGATTTTTGAACTTACGACCATTTTTCAAAT</code></pre>
+<pre><code>     misc_feature    &lt;1..&gt;26128
+                     /note=&quot;O-antigen biosynthesis gene locus&quot;
+     gene            119..229</code></pre>
 </div>
 <div id="ex-3" class="section level3">
 <h3>Ex-3</h3>
 <p>Dump all sequences as GenBank records.</p>
-<pre class="bash"><code>ffidx.py data/oantigen.idx -dump -fmt-o gb | grep ^DEFINITION</code></pre>
+<pre class="bash"><code>ffidx.py oantigen -dump -fmt-o gb | grep ^DEFINITION</code></pre>
 <pre><code>DEFINITION  Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete
 DEFINITION  Vibrio cholerae genes for o-antigen synthesis, strain O22, complete
 DEFINITION  Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial
@@ -414,56 +440,59 @@ ATGAAAACTGGCCACCGCCCTCTTTTGAATACTTCGCTGTCTTTACTCGGCGTACTGATA</code></pre>
 <h2>fffilter.py</h2>
 <p>The <code>fffilter.py</code> script filters for records with matching regex patterns and/or length bounds.</p>
 <pre class="bash"><code>fffilter.py -h</code></pre>
-<pre><code>usage: fffilter.py [-h] [-fmt FMT] [-fmt-o FMT_O] [-pattern PATTERN]
-                   [-length LENGTH] [-percentage]
-                   file
+<pre><code>usage: fffilter.py [-h] [-fmt-in FMT_IN] [-fmt-out FMT_OUT] file query
 
 filter sequence records by header and/or length
 
 positional arguments:
   file                  the sequence file
+  query                 the query to filter records
 
 optional arguments:
   -h, --help            show this help message and exit
-  -fmt FMT, --fmt FMT, -format FMT, --format FMT
+  -fmt-in FMT_IN, --fmt-in FMT_IN
                         the sequence file format (input) (default: fasta)
-  -fmt-o FMT_O, --fmt-o FMT_O
-                        the sequence file format (output) (default: fasta)
-  -pattern PATTERN      the regex pattern to search headers (default: None)
-  -length LENGTH        the sequence length (default: None)
-  -percentage, --percentage
-                        the flag to use percentage bounds (default: False)</code></pre>
-<div id="length-syntax" class="section level3">
-<h3>Length Syntax</h3>
-<p>The length syntax is length:+:-, where length is the sequence length in bp, + is the upper bound, and - is the lower bound. If the <code>-percentage</code> flag is set then the bounds are interpreted as percentages in the range [0, 100].</p>
+  -fmt-out FMT_OUT, --fmt-out FMT_OUT
+                        the sequence file format (output) (default: None)</code></pre>
+<div id="query-syntax" class="section level3">
+<h3>Query Syntax</h3>
+<p>The length syntax is the LEN keyword + operator + number or range. Choose an operator: &lt;, &lt;=, =, ==, &gt;=, &gt;, IN. The range format is two numbers separated by a dash.</p>
+<p>The query syntax is the LIKE keyword + property + regex. The property is a <a href="http://biopython.org/DIST/docs/api/Bio.SeqRecord.SeqRecord-class.html">SeqRecord</a> property.</p>
+<p>To negate the results, prepend an N to the keyword: NLEN, NLIKE.</p>
+<p>TODO: allow access to subproperties and fields, such as annotations and qualifiers…</p>
 </div>
 <div id="ex-1-3" class="section level3">
 <h3>Ex-1</h3>
 <p>Filter sequences based on a regex pattern.</p>
-<pre class="bash"><code>gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -pattern &quot; CO[0-9]+ &quot; | grep \&gt;</code></pre>
-<pre><code>&gt;GU576498.1 Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus, partial sequence
-&gt;GU576499.1 Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence</code></pre>
+<pre class="bash"><code>gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - &quot;LIKE description CO[0-9]+ &quot; -fmt-in gb | grep ^DEFINITION</code></pre>
+<pre><code>DEFINITION  Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus,
+DEFINITION  Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus,
+DEFINITION  Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus,</code></pre>
+<p>Negate the previous search.</p>
+<pre class="bash"><code>gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - &quot;NLIKE description CO[0-9]+ &quot; -fmt-in gb | grep ^DEFINITION</code></pre>
+<pre><code>DEFINITION  Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete
+DEFINITION  Vibrio cholerae genes for o-antigen synthesis, strain O22, complete
+DEFINITION  Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial</code></pre>
 </div>
 <div id="ex-2-3" class="section level3">
 <h3>Ex-2</h3>
-<p>Filter sequences based on length bounds: 30000 bp +/- 10%.</p>
-<pre class="bash"><code>gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -len 30000:10:10 -per | grep \&gt;</code></pre>
-<pre><code>&gt;AF390573.1 Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence
-&gt;GU576497.1 Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus, partial sequence</code></pre>
-</div>
-<div id="ex-3-1" class="section level3">
-<h3>Ex-3</h3>
 <p>Filter sequences based on length bounds: 45000 bp +/- 5000.</p>
-<pre class="bash"><code>gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - -fmt gb -len 45000:5000:5000 | grep \&gt;</code></pre>
-<pre><code>&gt;AB012956.1 Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete cds
-&gt;AB012957.1 Vibrio cholerae genes for o-antigen synthesis, strain O22, complete cds</code></pre>
+<pre class="bash"><code>gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - &quot;LEN IN 40000-50000&quot; -fmt-in gb | grep ^LOCUS</code></pre>
+<pre><code>LOCUS       AB012956               46721 bp    DNA     linear   BCT 16-OCT-1999
+LOCUS       AB012957               45993 bp    DNA     linear   BCT 16-OCT-1999</code></pre>
+<p>Negate the previous search.</p>
+<pre class="bash"><code>gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - &quot;NLEN IN 40000-50000&quot; -fmt-in gb | grep ^LOCUS</code></pre>
+<pre><code>LOCUS       AF390573               27552 bp    DNA     linear   BCT 08-MAY-2002
+LOCUS       GU576497               30443 bp    DNA     linear   BCT 25-JUL-2016
+LOCUS       GU576498               19487 bp    DNA     linear   BCT 25-JUL-2016
+LOCUS       GU576499               26128 bp    DNA     linear   BCT 01-APR-2011</code></pre>
 </div>
 </div>
 <div id="fflen.py" class="section level2">
 <h2>fflen.py</h2>
 <p>The <code>fflen.py</code> script computes the length for each sequence in the flat-file.</p>
 <pre class="bash"><code>fflen.py -h</code></pre>
-<pre><code>usage: fflen.py [-h] [-fmt FMT] [-separator SEP] [-summary] file
+<pre><code>usage: fflen.py [-h] [-fmt FMT] [-separator SEP] [-summary] [-fields] file
 
 compute the length of each record in the file
 
@@ -479,7 +508,9 @@ optional arguments:
                         (default: )
   -summary, --summary, -stats, --stats
                         the flag to compute basic summary statistics (default:
-                        False)</code></pre>
+                        False)
+  -fields, -fields, -header, --header
+                        the flag to output a header (default: False)</code></pre>
 <div id="ex-1-4" class="section level3">
 <h3>Ex-1</h3>
 <p>List the length of each record in the file.</p>

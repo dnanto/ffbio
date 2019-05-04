@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sqlite3
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -133,6 +134,7 @@ def main(argv):
 	term = args.term
 
 	path_idx = repo.with_suffix(".idx")
+	os.makedirs(path_idx.parent, exist_ok=True)
 
 	# load cache
 	cache = {}
@@ -181,19 +183,20 @@ def main(argv):
 	keys = accs & set(cache)
 	accs -= keys
 	print("cached:", len(keys), file=sys.stderr)
-	print("download:", len(accs), file=sys.stderr)
 
 	# update from cache
 	if keys:
+		print("update from cache...", file=sys.stderr)
 		filenames = list(map(str, filepaths(path_idx)))
 		filenames += [str(path_idx.with_suffix(f".{len(filenames)}.{ext}.bgz"))]
 
 		with BgzfWriter(filenames[-1]) as file:
-			SeqIO.write((cache[key] for key in cache), file, fmt)
+			SeqIO.write((cache[key] for key in keys), file, fmt)
 
 		reindex(path_idx, filenames, fmt, db, term, mdat, ext)
 
 	if accs:
+		print("download...", file=sys.stderr)
 		# cat file | epost -db db | efetch -format fmt > target
 		for batch in batchify(accs, args.post_size):
 			print("download:", *batch[:5], "...", file=sys.stderr)

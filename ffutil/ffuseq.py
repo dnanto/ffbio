@@ -54,7 +54,7 @@ def main(argv):
 				idx, key, val = f"{idx:0{width}d}", ele[0], ele[1]
 				for record in val:
 					print(idx, key, record.id, record.description, sep="\t", file=file)
-					record.id, record.description = idx, ""
+					record.id = idx
 
 	# output unique sequences
 	SeqIO.write((val[0] for val in records.values()), sys.stdout, args.fmt)

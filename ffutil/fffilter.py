@@ -20,12 +20,28 @@ ops = {
 }
 
 
+def getele(rec, epath):
+	obj = rec
+
+	for token in epath.split("."):
+		if token.isdigit():
+			obj = obj[int(token)]
+		elif hasattr(obj, token):
+			obj = getattr(obj, token)
+		elif token in obj:
+			obj = obj[token]
+
+	return obj
+
+
 def parse_query(query):
 	cmd = None
 
 	tokens = query.strip().split(" ", maxsplit=1)
 
-	if re.match(r"\s*N?LEN", tokens[0], re.I):
+	keyword = tokens[0].strip()
+
+	if re.match(r"^N?LEN$", keyword, re.I):
 		match = re.search(r"([><=]+|in)\s*((\d+)\s*-\s*(\d+)|\d+)", tokens[1], re.I)
 		opkey = match.group(1).lower()
 		if opkey == "in":
@@ -34,9 +50,21 @@ def parse_query(query):
 		else:
 			cmd = lambda rec: ops[opkey](len(rec), int(match.group(2)))
 
-	if re.match(r"\s*N?LIKE", tokens[0], re.I):
+	if re.match(r"^N?LIKE(IN)?$", keyword, re.I):
 		tokens = tokens[1].strip().split(" ", maxsplit=1)
-		cmd = lambda rec: re.search(tokens[1].strip(), getattr(rec, tokens[0].strip()))
+		if keyword.endswith("IN"):
+			cmd = lambda rec: any(
+				re.search(tokens[1].strip(), str(ele), re.I)
+				for ele in getele(rec, str(tokens[0].strip()))
+			)
+		else:
+			cmd = lambda rec: (
+				re.search(
+					tokens[1].strip(),
+					getele(rec, str(tokens[0].strip())),
+					re.I
+				)
+			)
 
 	return (lambda x: not cmd(x)) if query.strip()[0] in "Nn" else cmd
 

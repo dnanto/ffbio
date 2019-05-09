@@ -35,7 +35,7 @@ def ffparse(handle, fmt=None, size=None):
 
 def parse_argv(argv):
 	parser = ArgumentParser(
-		description="filter sequence records by header and/or length",
+		description="parse sequence records, sniff format automatically",
 		formatter_class=ArgumentDefaultsHelpFormatter
 	)
 

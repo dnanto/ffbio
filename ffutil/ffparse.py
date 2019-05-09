@@ -13,21 +13,24 @@ def openhook(fn, mode):
 	return fn if isinstance(fn, IOBase) else open(fn, mode)
 
 
-def ffsniff(stream, size=80):
-	sample = stream.read(size).lstrip()
-
-	fmt = None
-
-	if sample.startswith(">"):
-		fmt = "fasta"
-	elif sample.startswith("LOCUS"):
-		fmt = "genbank"
+def ffparse(handle, fmt=None, size=None):
+	if fmt:
+		yield from SeqIO.parse(handle, fmt)
 	else:
-		# todo: other formats...
-		pass
+		sample = handle.read(size).lstrip()
 
-	file = fileinput.input(files=(StringIO(sample), stream), openhook=openhook)
-	return file, fmt
+		fmt = None
+
+		if sample.startswith(">"):
+			fmt = "fasta"
+		elif sample.startswith("LOCUS"):
+			fmt = "genbank"
+		else:
+			# todo: other formats...
+			pass
+
+		with fileinput.input(files=(StringIO(sample), handle), openhook=openhook) as file:
+			yield from SeqIO.parse(file, fmt)
 
 
 def parse_argv(argv):
@@ -51,7 +54,7 @@ def main(argv):
 	args = parse_argv(argv[1:])
 
 	with args.file as file:
-		for record in SeqIO.parse(*ffsniff(file)):
+		for record in ffparse(file):
 			print(record.id)
 
 	return 0

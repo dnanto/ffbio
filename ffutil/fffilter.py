@@ -34,7 +34,7 @@ def getele(rec, epath):
 	return obj
 
 
-def parse_query(query):
+def parse_cmd(query):
 	cmd = None
 
 	tokens = query.strip().split(" ", maxsplit=1)
@@ -45,8 +45,8 @@ def parse_query(query):
 		match = re.search(r"([><=]+|in)\s*((\d+)\s*-\s*(\d+)|\d+)", tokens[1], re.I)
 		opkey = match.group(1).lower()
 		if opkey == "in":
-			rng = range(int(match.group(3)), int(match.group(4)) + 1)
-			cmd = lambda rec: ops[opkey](rng, len(rec))
+			ran = range(int(match.group(3)), int(match.group(4)) + 1)
+			cmd = lambda rec: ops[opkey](ran, len(rec))
 		else:
 			cmd = lambda rec: ops[opkey](len(rec), int(match.group(2)))
 
@@ -102,7 +102,7 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 
-	cmd = parse_query(args.query)
+	cmd = parse_cmd(args.query)
 
 	fmt_in = args.fmt_in
 	fmt_out = args.fmt_out or args.fmt_in

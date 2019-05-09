@@ -51,8 +51,7 @@ def main(argv):
 	args = parse_argv(argv[1:])
 
 	with args.file as file:
-		f, fmt = ffsniff(file)
-		for record in SeqIO.parse(f, fmt):
+		for record in SeqIO.parse(*ffsniff(file)):
 			print(record.id)
 
 	return 0

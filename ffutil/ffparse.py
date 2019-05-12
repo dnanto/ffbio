@@ -3,34 +3,36 @@
 import fileinput
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
-from io import StringIO, IOBase
+from io import IOBase, StringIO
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
 
 
+def ffsniff(handle, size=80):
+	sample = handle.read(size).lstrip()
+
+	fmt = None
+
+	if sample.startswith(">"):
+		fmt = "fasta"
+	elif sample.startswith("LOCUS"):
+		fmt = "genbank"
+	else:
+		# todo: other formats...
+		pass
+
+	return sample, fmt
+
+
+def ffparse(handle, format, alphabet=None, sample=""):
+	sample = StringIO(sample)
+	with fileinput.input((sample, handle), openhook=openhook) as file:
+		yield from SeqIO.parse(file, format, alphabet)
+
+
 def openhook(fn, mode):
 	return fn if isinstance(fn, IOBase) else open(fn, mode)
-
-
-def ffparse(handle, fmt=None, size=None):
-	if fmt:
-		yield from SeqIO.parse(handle, fmt)
-	else:
-		sample = handle.read(size).lstrip()
-
-		fmt = None
-
-		if sample.startswith(">"):
-			fmt = "fasta"
-		elif sample.startswith("LOCUS"):
-			fmt = "genbank"
-		else:
-			# todo: other formats...
-			pass
-
-		with fileinput.input(files=(StringIO(sample), handle), openhook=openhook) as file:
-			yield from SeqIO.parse(file, fmt)
 
 
 def parse_argv(argv):
@@ -54,7 +56,8 @@ def main(argv):
 	args = parse_argv(argv[1:])
 
 	with args.file as file:
-		for record in ffparse(file):
+		sample, fmt = ffsniff(file)
+		for record in ffparse(file, fmt, sample=sample):
 			print(record.id)
 
 	return 0

@@ -10,6 +10,12 @@ from signal import signal, SIGPIPE, SIG_DFL
 from Bio import SeqIO
 from Bio.SeqUtils.CheckSum import seguid
 
+from ffutil.ffparse import ffsniff, ffparse
+
+
+def keyfunc(record):
+	return seguid(record.seq)
+
 
 def parse_argv(argv):
 	parser = ArgumentParser(
@@ -21,9 +27,6 @@ def parse_argv(argv):
 		"file",
 		type=FileType(),
 		help="the sequence file"
-	)
-	parser.add_argument(
-		"-fmt", "--fmt", default="fasta"
 	)
 	parser.add_argument(
 		"-map", "--map", type=Path,
@@ -40,9 +43,11 @@ def main(argv):
 
 	# aggregate sequences by unique hash
 	with args.file as file:
+		sample, fmt = ffsniff(file)
+		keyfunc = lambda val: seguid(val.seq)
 		records = OrderedDict(
 			(key, list(val)) for key, val in
-			groupby(SeqIO.parse(file, args.fmt), key=lambda val: seguid(val.seq))
+			groupby(sorted(ffparse(file, fmt, sample=sample), key=keyfunc), keyfunc)
 		)
 
 	# map unique sequence index to unique hash
@@ -57,7 +62,7 @@ def main(argv):
 					record.id = idx
 
 	# output unique sequences
-	SeqIO.write((val[0] for val in records.values()), sys.stdout, args.fmt)
+	SeqIO.write((val[0] for val in records.values()), sys.stdout, fmt)
 
 	return 0
 

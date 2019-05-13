@@ -7,7 +7,7 @@ from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
 
-from ffutil.ffdb import ffidx_search
+from ffkit.ffdb import ffidx_search
 
 
 def accverize(index, keys):

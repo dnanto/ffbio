@@ -10,7 +10,7 @@ from signal import signal, SIGPIPE, SIG_DFL
 from Bio import SeqIO
 from Bio.SeqUtils.CheckSum import seguid
 
-from ffutil.ffparse import ffsniff, ffparse
+from ffkit.ffparse import ffsniff, ffparse
 
 
 def keyfunc(record):

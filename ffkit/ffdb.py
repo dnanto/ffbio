@@ -147,7 +147,7 @@ def main(argv):
 	term = args.term
 
 	path_idx = ffidx_search(repo)
-	
+
 	os.makedirs(path_idx.parent, exist_ok=True)
 
 	# load cache
@@ -173,8 +173,8 @@ def main(argv):
 	fmt = meta.get("format", fmt)
 	ext = meta.get("ext", ext)
 	mdat = None if args.no_mdat else meta.get("mdat")
-	term = meta.get("term", term)
-	term = f"{term} AND {mdat}:3000[MDAT]" if mdat else term
+	term_base = meta.get("term", term)
+	term = f"{term_base} AND {mdat}:3000[MDAT]" if mdat else term_base
 
 	print("term:", term, file=sys.stderr)
 
@@ -207,7 +207,7 @@ def main(argv):
 		with BgzfWriter(filenames[-1]) as file:
 			SeqIO.write((cache[key] for key in keys), file, fmt)
 
-		reindex(path_idx, filenames, fmt, db, term, mdat, ext)
+		reindex(path_idx, filenames, fmt, db, term_base, mdat, ext)
 
 	if accs:
 		print("download...", file=sys.stderr)
@@ -226,7 +226,7 @@ def main(argv):
 					stdout, stderr = pipe2.communicate(stdout)
 					print(stdout, file=file)
 
-			reindex(path_idx, filenames, fmt, db, term, mdat, ext)
+			reindex(path_idx, filenames, fmt, db, term_base, mdat, ext)
 
 	return 0
 

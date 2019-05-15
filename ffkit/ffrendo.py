@@ -2,7 +2,10 @@
 
 
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from argparse import ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser, FileType
+from collections import OrderedDict
+from itertools import combinations
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import Restriction
@@ -31,6 +34,12 @@ def parse_argv(argv):
 		action="store_true",
 		help="the flag to set default topology to circular if not specified in annotation"
 	)
+	parser.add_argument(
+		"-fragments", "--fragments",
+		dest="frag",
+		action="store_true",
+		help="the flag to output fragments"
+	)
 
 	args = parser.parse_args(argv)
 
@@ -43,14 +52,17 @@ def main(argv):
 	# load enzymes
 	enzymes = [getattr(Restriction, key) for key in args.enzymes]
 
-	# aggregate sequences by unique hash
+	data = OrderedDict()
 	with args.file as file:
 		sample, fmt = ffsniff(file)
-		for record in ffparse(file, fmt, sample=sample):
-			for enzyme in enzymes:
-				is_linear = record.annotations.get("topology", not args.circular)
-				for seq in enzyme.catalyze(record.seq, is_linear):
-					print(record.id, str(enzyme), len(seq), sep="\t")
+		for rec in ffparse(file, fmt, sample=sample):
+			is_linear = rec.annotations.get("topology", not args.circular)
+			data[rec.id] = {len(seq) for enz in enzymes for seq in enz.catalyze(rec.seq, is_linear)}
+
+	for key1, key2 in combinations(data, 2):
+		n = len(data[key1] & data[key2])
+		d = 1 - (n / (len(data[key1]) + len(data[key2]) - n))
+		print(key1, key2, d, sep="\t")
 
 	return 0
 

@@ -12,6 +12,8 @@ from subprocess import PIPE, Popen
 from Bio import Entrez, SeqIO
 from Bio.bgzf import BgzfWriter
 
+from ffkit.ffidx import ffidx_search
+
 formats = {
 	"fas": "fasta",
 	"faa": "fasta",
@@ -21,19 +23,6 @@ formats = {
 	"gbk": "gb",
 	"genbank": "gb"
 }
-
-
-def ffidx_search(index):
-	target = Path(index).expanduser().with_suffix(".idx")
-
-	if not target.exists():
-		for path in map(Path, os.environ.get("FFIDX", os.getcwd()).split(":")):
-			path_index = path.expanduser().joinpath(target)
-			if path_index.exists():
-				target = path_index
-				break
-
-	return target
 
 
 def batchify(entries, size=10):

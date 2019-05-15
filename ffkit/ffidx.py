@@ -1,13 +1,25 @@
 #!/usr/bin/env python3
-
+import os
 import sqlite3
 import sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from pathlib import Path
 from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import SeqIO
 
-from ffkit.ffdb import ffidx_search
+
+def ffidx_search(index):
+	target = Path(index).expanduser().with_suffix(".idx")
+
+	if not target.exists():
+		for path in map(Path, os.environ.get("FFIDX", os.getcwd()).split(":")):
+			path_index = path.expanduser().joinpath(target)
+			if path_index.exists():
+				target = path_index
+				break
+
+	return target
 
 
 def accverize(index, keys):

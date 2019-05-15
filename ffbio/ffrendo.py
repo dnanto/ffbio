@@ -10,7 +10,7 @@ from signal import signal, SIGPIPE, SIG_DFL
 
 from Bio import Restriction
 
-from ffkit.ffparse import ffsniff, ffparse
+from ffbio.ffparse import ffsniff, ffparse
 
 
 def parse_argv(argv):

@@ -12,7 +12,7 @@ from subprocess import PIPE, Popen
 from Bio import Entrez, SeqIO
 from Bio.bgzf import BgzfWriter
 
-from ffkit.ffidx import ffidx_search
+from ffbio.ffidx import ffidx_search
 
 formats = {
 	"fas": "fasta",

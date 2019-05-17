@@ -9,8 +9,8 @@ from signal import signal, SIGPIPE, SIG_DFL
 from Bio import SeqIO
 
 
-def ffsniff(handle, size=80):
-	sample = handle.read(size).lstrip()
+def ffsniff(handle):
+	sample = next(handle)
 
 	fmt = None
 

@@ -9,8 +9,16 @@ from signal import signal, SIGPIPE, SIG_DFL
 from Bio import SeqIO
 
 
-def ffsniff(handle):
-	sample = next(handle)
+def ffsample(handle, n=1):
+	try:
+		for _ in range(n):
+			yield next(handle)
+	except StopIteration:
+		pass
+
+
+def ffsniff(handle, n=1):
+	sample = "".join(ffsample(handle, n))
 
 	fmt = None
 
@@ -25,7 +33,7 @@ def ffsniff(handle):
 	return sample, fmt
 
 
-def ffparse(handle, format, alphabet=None, sample=""):
+def ffparse(handle, format, alphabet=None, sample=None):
 	sample = StringIO(sample)
 	with fileinput.input((sample, handle), openhook=openhook) as file:
 		yield from SeqIO.parse(file, format, alphabet)

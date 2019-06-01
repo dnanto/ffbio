@@ -57,11 +57,11 @@ def main(argv):
 	keys = list(parse_keys(args.keys))
 
 	with args.file as file:
-		args.fields and print("id", *(key[0] for key in keys), sep=args.sep)
+		args.fields and print("id", "description", *(key[0] for key in keys), sep=args.sep)
 		for record in SeqIO.parse(file, "genbank"):
 			feats = getattr(record, "features", [{}])
 			quals = getattr(feats[0], "qualifiers", {})
-			print(record.id, *itemgetter(quals, *keys), sep=args.sep)
+			print(record.id, record.description, *itemgetter(quals, *keys), sep=args.sep)
 
 	return 0
 

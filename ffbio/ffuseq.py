@@ -54,12 +54,12 @@ def main(argv):
 	if args.map:
 		with args.map.open("w") as file:
 			width = len(str(len(records)))
-			print("idx", "key", "id", "description", sep="\t", file=file)
+			print("idx", "key", "id", "description", "length", sep="\t", file=file)
 			for idx, ele in enumerate(records.items(), start=1):
 				idx, key, val = f"{idx:0{width}d}", ele[0], ele[1]
-				for record in val:
-					print(idx, key, record.id, record.description, sep="\t", file=file)
-					record.id = idx
+				for rec in val:
+					print(idx, key, rec.id, rec.description, len(rec), sep="\t", file=file)
+					rec.id = idx
 
 	# output unique sequences
 	SeqIO.write((val[0] for val in records.values()), sys.stdout, fmt)

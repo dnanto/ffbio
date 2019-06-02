@@ -10,14 +10,18 @@ from Bio import SeqIO
 
 
 def ffidx_search(index):
-	target = Path(index).expanduser().with_suffix(".idx")
+	target = index
 
-	if not target.exists():
-		for path in map(Path, os.environ.get("FFIDX", os.getcwd()).split(":")):
-			path_index = path.expanduser().joinpath(target)
-			if path_index.exists():
-				target = path_index
-				break
+	if str(index) != ":memory:":
+
+		target = Path(index).expanduser().with_suffix(".idx")
+
+		if not target.exists():
+			for path in map(Path, os.environ.get("FFIDX", os.getcwd()).split(":")):
+				path_index = path.expanduser().joinpath(target)
+				if path_index.exists():
+					target = path_index
+					break
 
 	return target
 
@@ -60,6 +64,7 @@ def parse_argv(argv):
 
 	parser.add_argument(
 		"index",
+		type=Path,
 		help="the SQLite index"
 	)
 	parser.add_argument(
@@ -116,15 +121,18 @@ def parse_argv(argv):
 def main(argv):
 	args = parse_argv(argv[1:])
 
+	fmt_idx = args.fmt_idx
+	fmt_out = args.fmt_out
+
 	index = str(ffidx_search(args.index))
+	db = SeqIO.index_db(index, filenames=args.filenames, format=fmt_idx)
 
-	db = SeqIO.index_db(index, filenames=args.filenames, format=args.fmt_idx)
-
-	with sqlite3.connect(index) as conn:
-		meta = dict(conn.execute("SELECT * FROM meta_data").fetchall())
-		fmt_idx = meta["format"]
-
-	fmt_out = args.fmt_out or fmt_idx
+	if index == ":memory:":
+		fmt_out = fmt_out or fmt_idx
+	else:
+		with sqlite3.connect(index) as conn:
+			meta = dict(conn.execute("SELECT * FROM meta_data").fetchall())
+			fmt_out = fmt_out or meta["format"]
 
 	keys = []
 	if args.all:

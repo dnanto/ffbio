@@ -88,7 +88,7 @@ def main(argv):
     logging.info(f"count = {len(accs)}")
 
     paths = []
-    width = len(str(args.retmax))
+    width = len(str(len(accs)))
     for i, j in enumerate(range(0, len(accs), args.retmax), start=1):
         # fetch
         k = min(len(accs), j + args.retmax)

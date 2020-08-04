@@ -2,6 +2,8 @@ __pycache__
 .vscode/
 .Rhistory
 data/*.bgz
+data/*.bgz.tmp
 data/*.db
 data/*.idx
+data/*.log
 data/urec.*

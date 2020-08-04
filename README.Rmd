@@ -11,12 +11,17 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-	warning = FALSE,
-	message = FALSE,
+	warning = F,
+	message = F,
 	comment = ""
 )
-if (!exists("PATH")) PATH = system('source ~/.bash_profile && echo "$PATH"', intern = T)
-Sys.setenv(PATH = PATH)
+
+if (!exists("PATH")) 
+  PATH <- paste(file.path(getwd(), "ffbio"), Sys.getenv("PATH"), sep = ":")
+if (!exists("PYTHONPATH")) 
+  PYTHONPATH <- paste(getwd(), Sys.getenv("PYTHONPATH"), sep = ":")
+
+Sys.setenv(PATH = PATH, PYTHONPATH = PYTHONPATH)
 ```
 
 # Abstract
@@ -28,22 +33,7 @@ Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.
 
 # Dependencies
 
-## Environment
-
-### PYTHONPATH
-
-Append the directory that has the package folder to PYTHONPATH.
-
-```{r}
-if (!exists("PYTHONPATH")) PYTHONPATH = getwd()
-Sys.setenv(PYTHONPATH = PYTHONPATH)
-```
-
-```{bash}
-echo ${PYTHONPATH/~/\~}
-```
-
-### FFIDX
+## FFIDX
 
 This is an optional environment variable similar to BLASTDB. It is a colon-separated list of absolute or relative paths to search for indexed sets of flat-files. The examples take advantage of this feature. Otherwise, it is possible to specify the path to the index to the script directly.
 
@@ -58,7 +48,6 @@ echo ${FFIDX/~/\~}
 ## Note
 
 * The Pipfile lists the Python requirements.
-* The edirect programs should be in PATH; download them [here](ftp://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/).
 * For convenience, add the script root directory to PATH.
 * Also, it is convenient to know the NCBI [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
 
@@ -78,11 +67,10 @@ Initialize a repository of indexed GenBank files. Search NCBI for all *Mimivirus
 
 ```{bash}
 ffdb.py data/315393 \
-  -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]' \
-  -fmt gbk -post 100
+  -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] NOT WGS[KYWD]' \
+  -rettype fasta \
+  -retmax 100
 ```
-
-Update the FFIDX environment variable.
 
 List the results in the directory.
 
@@ -95,15 +83,7 @@ du -sh data/315393.*
 Update the same repository.
 
 ```{bash}
-ffdb.py 315393
-```
-
-### Ex-2
-
-Update the same repository, but disable the modified date limiter.
-
-```{bash}
-ffdb.py 315393 -no-mdat
+ffdb.py data/315393
 ```
 
 ## ffidx.py
@@ -164,82 +144,12 @@ Extract all CDS records.
 gunzip -c data/oantigen.[1-2].gbk.gz | ffcds.py - | grep -A 2 \> | head
 ```
 
-## fffilter.py
+## ffgbktax.py
 
-The ```fffilter.py``` script filters for records with matching regex patterns and/or length bounds.
-
-```{bash}
-fffilter.py -h
-```
-
-### Query Syntax
-
-The length syntax is the LEN keyword + operator + number or range. Choose an operator: <, <=, =, ==, >=, >, IN. The range format is two numbers separated by a dash.
-
-The query syntax is the LIKE keyword + property + regex. The property is a [SeqRecord](http://biopython.org/DIST/docs/api/Bio.SeqRecord.SeqRecord-class.html) property.
-
-To negate the results, prepend an N to the keyword: NLEN, NLIKE.
-
-TODO: allow access to subproperties and fields, such as annotations and qualifiers...
-
-### Ex-1
-
-Filter sequences based on a regex pattern.
+The ```ffgbktax.py``` script generates a taxonomy mapping from a GenBank file suitable for use with the ```makeblastdb``` command.
 
 ```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
-```
-
-Negate the previous search.
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
-```
-
-### Ex-2
-
-Filter sequences based on length bounds: 45000 bp +/- 5000.
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
-```
-
-Negate the previous search.
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
-```
-
-## fflen.py
-
-The ```fflen.py``` script computes the length for each sequence in the flat-file.
-
-```{bash}
-fflen.py -h
-```
-
-### Ex-1
-
-List the length of each record in the file.
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fflen.py - -fmt gb
-```
-
-### Ex-2
-
-Compute the length summary statistics.
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | fflen.py - -fmt gb -stat
-```
-
-## ffgbk2taxmap.py
-
-The ```ffgbk2taxmap.py``` script generates a taxonomy mapping from a GenBank file suitable for use with the ```makeblastdb``` command.
-
-```{bash}
-ffgbk2taxmap.py -h
+ffgbktax.py -h
 ```
 
 ### Ex-1
@@ -247,7 +157,7 @@ ffgbk2taxmap.py -h
 Generate a taxonomy mapping from a GenBank file.
 
 ```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | ffgbk2taxmap.py - 
+gunzip -c data/oantigen.[1-2].gbk.gz | ffgbktax.py - 
 ```
 
 ## ffuseq.py
@@ -276,51 +186,5 @@ grep ^LOCUS data/urec.gbk
 
 ```{bash}
 cat data/urec.tsv
-```
-
-## ffgbksrc.py
-
-The ```ffgbksrc``` command queries GenBank metadata from the **source** feature.
-
-```{bash}
-ffgbksrc.py -h
-```
-
-### Key Syntax
-
-The key syntax is key:default:join, where key is the key qualifier, default is the default value if the key is missing, and join is a character to join multiple values under the same key. The default and join specifiers are optional.
-
-### Ex-1
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | ffgbksrc.py - strain db_xref:0:,
-```
-
-## fffnagff2gbk.py
-
-The ```fffnagff2gbk.py``` script combines FASTA and GFF3 files to create GenBank files with feature annotations.
-
-```{bash}
-fffnagff2gbk.py -h
-```
-
-### Ex-1
-
-...
-
-## ffkmer.py
-
-The ```ffkmer``` script k-merizes sequences into separate records.
-
-```{bash}
-ffkmer.py -h
-```
-
-### Ex-1
-
-Calculate all 100-mers.
-
-```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz 2> /dev/null | ffkmer.py - 100 -fmt gb | head | grep -A 2 \>
 ```
 

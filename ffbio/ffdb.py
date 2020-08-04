@@ -1,225 +1,126 @@
 #!/usr/bin/env python3
 
-import os
 import sqlite3
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from collections import OrderedDict
 from datetime import datetime
+from itertools import chain
+from math import ceil
+from os import makedirs
 from pathlib import Path
-from signal import signal, SIGPIPE, SIG_DFL
+from signal import SIG_DFL, SIGPIPE, signal
 from subprocess import PIPE, Popen
 
 from Bio import Entrez, SeqIO
 from Bio.bgzf import BgzfWriter
 
-from ffbio.ffidx import ffidx_search
 
-formats = {
-	"fas": "fasta",
-	"faa": "fasta",
-	"fna": "fasta",
-	"fasta": "fasta",
-	"gb": "gb",
-	"gbk": "gb",
-	"genbank": "gb"
-}
-
-
-def batchify(entries, size=10):
-	batch = []
-	for i, e in enumerate(entries, start=1):
-		batch.append(e)
-		if i % size == 0:
-			yield batch
-			batch = []
-
-	if batch:
-		yield batch
-
-
-def filepaths(path_idx):
-	filenames = []
-
-	if path_idx.exists():
-		with sqlite3.connect(path_idx) as conn:
-			rows = conn.execute("SELECT name FROM file_data ORDER BY file_number").fetchall()
-			filenames = [path_idx.parent / row[0] for row in rows]
-
-	return filenames
-
-
-def reindex(path_idx, filenames, fmt, db, term, mdat, ext):
-	path_idx_tmp = path_idx.with_suffix(".tmp")
-	path_idx_tmp.exists() and path_idx_tmp.unlink()
-	SeqIO.index_db(str(path_idx_tmp), filenames=filenames, format=fmt)
-	with sqlite3.connect(path_idx_tmp) as conn:
-		conn.execute(
-			"INSERT INTO meta_data VALUES ('db', ?), ('term', ?), ('mdat', ?), ('ext', ?)",
-			(db, term, mdat, ext)
-		)
-	path_idx_tmp.replace(path_idx)
+def esearch(db, term, retmax=1000):
+    # get number of results
+    with Entrez.esearch(db=db, term=term, idtype="acc", retmax=retmax, usehistory=True) as handle:
+        rec = Entrez.read(handle)
+    # page through results
+    kwargs = dict(WebEnv=rec["WebEnv"], QueryKey=rec["QueryKey"], RetMax=rec["RetMax"] or 1)
+    for i in range(0, int(rec["Count"]), retmax):
+        with Entrez.esearch(db=db, term=term, idtype="acc", retstart=i, **kwargs) as handle:
+            yield Entrez.read(handle)["IdList"]
 
 
 def parse_argv(argv):
-	parser = ArgumentParser(
-		description="update a repository of indexed sequence files",
-		formatter_class=ArgumentDefaultsHelpFormatter
-	)
+    parser = ArgumentParser(
+        description="update a repository of indexed sequence files",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
 
-	parser.add_argument(
-		"repo",
-		type=Path,
-		help="the target file to create/update"
-	)
-	parser.add_argument(
-		"-fmt", "--fmt", "-format", "--format",
-		default="fasta",
-		help="the sequence file format"
-	)
-	parser.add_argument(
-		"-db", "--db", "-database", "--database",
-		default="nuccore",
-		help="the NCBI database"
-	)
-	parser.add_argument(
-		"-term", "--term",
-		help="the NCBI query term"
-	)
-	parser.add_argument(
-		"-no-mdat", "--no-mdat",
-		action="store_true",
-		help="flag to disable adding last modified date to the query"
-	)
-	parser.add_argument(
-		"-email", "--email",
-		default="",
-		help="the e-mail to identify yourself to NCBI (for politeness reasons)"
-	)
-	parser.add_argument(
-		"-post-size", "--post-size",
-		type=int,
-		default=1000,
-		help="the number of records to post at a time"
-	)
-	parser.add_argument(
-		"-cache", "--cache",
-		nargs="+",
-		help="the cache of sequence files to search prior to querying NCBI"
-	)
-	parser.add_argument(
-		"-cache-fmt", "--cache-fmt",
-		default="fasta",
-		help="the sequence file format of the cache"
-	)
-	parser.add_argument(
-		"-redo", "--redo",
-		action="store_true",
-		help="the flag to delete everything and redo"
+    parser.add_argument("repo", type=Path, help="the target file to create/update")
+    parser.add_argument("-db", default="nuccore", help="the NCBI database")
+    parser.add_argument("-term", help="the NCBI query term")
+    parser.add_argument("-rettype", default="fasta", help="the sequence file format")
+    parser.add_argument("-retmax", type=int, default=1000, help="the records to post at a time")
+    parser.add_argument("-xmdat", action="store_true", help="flag to disable modified date query")
+    parser.add_argument("-email", default="", help="the e-mail to identify yourself to NCBI")
 
-	)
+    args = parser.parse_args(argv)
 
-	args = parser.parse_args(argv)
-
-	return args
+    return args
 
 
 def main(argv):
-	args = parse_argv(argv[1:])
+    args = parse_argv(argv[1:])
 
-	Entrez.email = args.email
+    Entrez.email = args.email
 
-	repo = args.repo
-	ext = args.fmt
-	fmt = formats[ext]
+    # repo directory
+    makedirs(args.repo.parent, exist_ok=True)
+    # repo database
+    path_db = args.repo.with_suffix(".db")
 
-	db = args.db
-	term = args.term
+    # metadata
+    accs, fdat, meta = set(), {}, dict(mdat=datetime.now().strftime("%Y/%m/%d"))
+    if path_db.exists():
+        with sqlite3.connect(path_db) as conn:
+            # 0 -> key
+            accs = {row[0] for row in conn.execute("SELECT key FROM offset_data")}
+            # file_number -> name
+            fdat = OrderedDict(conn.execute("SELECT * FROM file_data"))
+            # key -> value
+            meta = OrderedDict(conn.execute("SELECT * FROM meta_data"))
+            # override args
+            args.db = meta["db"]
+            args.rettype = meta["format"]
+            args.term = args.term if args.xmdat else f"{meta['term']} AND {meta['mdat']}:3000[MDAT]"
 
-	path_idx = ffidx_search(repo)
+    # remote - local accessions
+    print(args.term)
+    accs = list(set(chain.from_iterable(esearch(args.db, args.term, args.retmax))) - accs)
+    print(len(accs))
 
-	os.makedirs(path_idx.parent, exist_ok=True)
+    paths = []
+    width = len(str(args.retmax))
+    for i, j in enumerate(range(0, len(accs), args.retmax), start=1):
+        # fetch
+        k = min(len(accs), j + args.retmax)
+        print(f"{j:0{width}} - {k:0{width}}", end=" ")
+        csv = ",".join(accs[j : j + args.retmax])
+        with Entrez.efetch(args.db, id=csv, rettype=args.rettype, retmode="text") as handle:
+            path = args.repo.parent / f"{args.repo.name}-{i}.{args.rettype}.bgz.tmp"
+            # compress
+            with BgzfWriter(path) as stream:
+                print(handle.read(), file=stream)
+        paths.append(path)
+        print(f"{k / len(accs) * 100:03.2}%")
 
-	# load cache
-	cache = {}
-	if args.cache:
-		cache = SeqIO.index_db(":memory:", filenames=args.cache, format=formats[args.cache_fmt])
+    if paths:
+        # rename
+        paths = list(map(Path, fdat.values())) + paths
+        width = len(str(len(paths)))
+        paths = {
+            ele: ele.with_name(f"{args.repo.name}-{idx:0{width}}.{args.rettype}.bgz")
+            for idx, ele in enumerate(paths, start=1)
+        }
+        for key, val in paths.items():
+            print(key, val)
+            key.rename(val)
+        try:
+            path_tmp = path_db.with_suffix(".tmp")
+            path_tmp.exists() and path_tmp.unlink()
+            print("index...")
+            SeqIO.index_db(str(path_tmp), list(map(str, paths.values())), args.rettype)
+            with sqlite3.connect(path_tmp) as conn:
+                conn.execute(
+                    "INSERT INTO meta_data VALUES ('db', ?), ('term', ?), ('mdat', ?)",
+                    (args.db, args.term, meta["mdat"]),
+                )
+            path_tmp.rename(path_db)
+        except Exception as e:
+            print(e)
+            for key, val in paths.items():
+                val.exists() and val.rename(key)
 
-	# redo or load metadata
-	meta, files, accs = {}, [], set()
-	if args.redo:
-		for path in filepaths(path_idx):
-			print("unlink: ", str(path))
-			path.unlink()
-		if path_idx.exists():
-			print("unlink: ", str(path_idx))
-			path_idx.unlink()
-	elif path_idx.exists():
-		with sqlite3.connect(path_idx) as conn:
-			meta = dict(conn.execute("SELECT * FROM meta_data").fetchall())
-			accs = {row[0] for row in conn.execute("SELECT key FROM offset_data")}
-
-	db = meta.get("db", db)
-	fmt = meta.get("format", fmt)
-	ext = meta.get("ext", ext)
-	mdat = None if args.no_mdat else meta.get("mdat")
-	term_base = meta.get("term", term)
-	term = f"{term_base} AND {mdat}:3000[MDAT]" if mdat else term_base
-
-	print("term:", term, file=sys.stderr)
-
-	# get the number of remote accessions
-	mdat = datetime.now().strftime("%Y/%m/%d")
-	with Entrez.esearch(db=db, term=term, idtype="acc") as file:
-		record = Entrez.read(file)
-
-	count = int(record["Count"])
-	print("count: ", count, file=sys.stderr)
-
-	# get the remote accessions
-	with Entrez.esearch(db=db, term=term, idtype="acc", retmax=count) as file:
-		record = Entrez.read(file)
-		accs = set(record["IdList"]) - accs
-
-	# accession diff length
-	print("new: ", len(accs), file=sys.stderr)
-
-	keys = accs & set(cache)
-	accs -= keys
-	print("cached:", len(keys), file=sys.stderr)
-
-	# update from cache
-	if keys:
-		print("update from cache...", file=sys.stderr)
-		filenames = list(map(str, filepaths(path_idx)))
-		filenames += [str(path_idx.with_suffix(f".{len(filenames)}.{ext}.bgz"))]
-
-		with BgzfWriter(filenames[-1]) as file:
-			SeqIO.write((cache[key] for key in keys), file, fmt)
-
-		reindex(path_idx, filenames, fmt, db, term_base, mdat, ext)
-
-	if accs:
-		print("download...", file=sys.stderr)
-		# cat file | epost -db db | efetch -format fmt > target
-		for batch in batchify(accs, args.post_size):
-			print("download:", *batch[:5], "...", file=sys.stderr)
-			kwargs = dict(stdin=PIPE, stdout=PIPE, universal_newlines=True)
-			cmd1, cmd2 = ["epost", "-db", db], ["efetch", "-format", fmt]
-
-			filenames = list(map(str, filepaths(path_idx)))
-			filenames += [str(path_idx.with_suffix(f".{len(filenames)}.{ext}.bgz"))]
-
-			with BgzfWriter(filenames[-1]) as file:
-				with Popen(cmd1, **kwargs) as pipe1, Popen(cmd2, **kwargs) as pipe2:
-					stdout, stderr = pipe1.communicate("\n".join(batch))
-					stdout, stderr = pipe2.communicate(stdout)
-					print(stdout, file=file)
-
-			reindex(path_idx, filenames, fmt, db, term_base, mdat, ext)
-
-	return 0
+    return 0
 
 
 if __name__ == "__main__":
-	signal(SIGPIPE, SIG_DFL)
-	sys.exit(main(sys.argv))
+    signal(SIGPIPE, SIG_DFL)
+    sys.exit(main(sys.argv))

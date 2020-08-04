@@ -10,67 +10,67 @@ from Bio import SeqIO
 
 
 def ffsample(handle, n=1):
-	try:
-		for _ in range(n):
-			yield next(handle)
-	except StopIteration:
-		pass
+    try:
+        for _ in range(n):
+            yield next(handle)
+    except StopIteration:
+        pass
 
 
 def ffsniff(handle, n=1):
-	sample = "".join(ffsample(handle, n))
+    sample = "".join(ffsample(handle, n))
 
-	fmt = None
+    fmt = None
 
-	if sample.startswith(">"):
-		fmt = "fasta"
-	elif sample.startswith("LOCUS"):
-		fmt = "genbank"
-	else:
-		# todo: other formats...
-		pass
+    if sample.startswith(">"):
+        fmt = "fasta"
+    elif sample.startswith("LOCUS"):
+        fmt = "genbank"
+    else:
+        # todo: other formats...
+        pass
 
-	return sample, fmt
+    return sample, fmt
 
 
 def ffparse(handle, format, alphabet=None, sample=None):
-	sample = StringIO(sample)
-	with fileinput.input((sample, handle), openhook=openhook) as file:
-		yield from SeqIO.parse(file, format, alphabet)
+    sample = StringIO(sample)
+    with fileinput.input((sample, handle), openhook=openhook) as file:
+        yield from SeqIO.parse(file, format, alphabet)
 
 
 def openhook(fn, mode):
-	return fn if isinstance(fn, IOBase) else open(fn, mode)
+    return fn if isinstance(fn, IOBase) else open(fn, mode)
 
 
 def parse_argv(argv):
-	parser = ArgumentParser(
-		description="parse sequence records, sniff format automatically",
-		formatter_class=ArgumentDefaultsHelpFormatter
-	)
+    parser = ArgumentParser(
+        description="parse sequence records, sniff format automatically",
+        formatter_class=ArgumentDefaultsHelpFormatter
+    )
 
-	parser.add_argument(
-		"file",
-		type=FileType(),
-		help="the sequence file"
-	)
+    parser.add_argument(
+        "file",
+        type=FileType(),
+        help="the sequence file"
+    )
 
-	args = parser.parse_args(argv)
+    args = parser.parse_args(argv)
 
-	return args
+    return args
 
 
 def main(argv):
-	args = parse_argv(argv[1:])
+    args = parse_argv(argv[1:])
 
-	with args.file as file:
-		sample, fmt = ffsniff(file)
-		for record in ffparse(file, fmt, sample=sample):
-			print(record.id)
+    with args.file as file:
+        sample, fmt = ffsniff(file)
+        for record in ffparse(file, fmt, sample=sample):
+            print(record.id)
 
-	return 0
+    return 0
 
 
 if __name__ == "__main__":
-	signal(SIGPIPE, SIG_DFL)
-	sys.exit(main(sys.argv))
+    signal(SIGPIPE, SIG_DFL)
+    sys.exit(main(sys.argv))

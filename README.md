@@ -1,7 +1,7 @@
 ---
 title: "README"
 author: "dnanto"
-date: "May 04, 2019"
+date: "August 03, 2020"
 output: 
   html_document: 
     keep_md: yes
@@ -20,28 +20,7 @@ Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.
 
 # Dependencies
 
-## Environment
-
-### PYTHONPATH
-
-Append the directory that has the package folder to PYTHONPATH.
-
-
-```r
-if (!exists("PYTHONPATH")) PYTHONPATH = getwd()
-Sys.setenv(PYTHONPATH = PYTHONPATH)
-```
-
-
-```bash
-echo ${PYTHONPATH/~/\~}
-```
-
-```
-~/Documents/thesis/github/ffdb
-```
-
-### FFIDX
+## FFIDX
 
 This is an optional environment variable similar to BLASTDB. It is a colon-separated list of absolute or relative paths to search for indexed sets of flat-files. The examples take advantage of this feature. Otherwise, it is possible to specify the path to the index to the script directly.
 
@@ -56,7 +35,7 @@ echo ${FFIDX/~/\~}
 ```
 
 ```
-~/Documents/thesis/github/ffdb/data
+~/GitHub/ffbio/data
 ```
 
 ## Note
@@ -78,39 +57,23 @@ ffdb.py -h
 ```
 
 ```
-usage: ffdb.py [-h] [-fmt FMT] [-db DB] [-term TERM] [-no-mdat] [-email EMAIL]
-               [-post-size POST_SIZE] [-cache CACHE [CACHE ...]]
-               [-cache-fmt CACHE_FMT] [-redo]
+usage: ffdb.py [-h] [-db DB] [-term TERM] [-rettype RETTYPE] [-retmax RETMAX]
+               [-xmdat] [-email EMAIL]
                repo
 
 update a repository of indexed sequence files
 
 positional arguments:
-  repo                  the target file to create/update
+  repo              the target file to create/update
 
 optional arguments:
-  -h, --help            show this help message and exit
-  -fmt FMT, --fmt FMT, -format FMT, --format FMT
-                        the sequence file format (default: fasta)
-  -db DB, --db DB, -database DB, --database DB
-                        the NCBI database (default: nuccore)
-  -term TERM, --term TERM
-                        the NCBI query term (default: None)
-  -no-mdat, --no-mdat   flag to disable adding last modified date to the query
-                        (default: False)
-  -email EMAIL, --email EMAIL
-                        the e-mail to identify yourself to NCBI (for
-                        politeness reasons) (default: )
-  -post-size POST_SIZE, --post-size POST_SIZE
-                        the number of records to post at a time (default:
-                        1000)
-  -cache CACHE [CACHE ...], --cache CACHE [CACHE ...]
-                        the cache of sequence files to search prior to
-                        querying NCBI (default: None)
-  -cache-fmt CACHE_FMT, --cache-fmt CACHE_FMT
-                        the sequence file format of the cache (default: fasta)
-  -redo, --redo         the flag to delete everything and redo (default:
-                        False)
+  -h, --help        show this help message and exit
+  -db DB            the NCBI database (default: nuccore)
+  -term TERM        the NCBI query term (default: None)
+  -rettype RETTYPE  the sequence file format (default: fasta)
+  -retmax RETMAX    the records to post at a time (default: 1000)
+  -xmdat            flag to disable modified date query (default: False)
+  -email EMAIL      the e-mail to identify yourself to NCBI (default: )
 ```
 
 ### Ex-1
@@ -120,22 +83,24 @@ Initialize a repository of indexed GenBank files. Search NCBI for all *Mimivirus
 
 ```bash
 ffdb.py data/315393 \
-  -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]' \
-  -fmt gbk -post 100
+  -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] NOT WGS[KYWD]' \
+  -rettype fasta \
+  -retmax 100
 ```
 
 ```
-term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]
-count:  237
-new:  237
-cached: 0
-download...
-download: JN885991.1 MH046816.1 KT595678.1 MG779328.1 KT321949.1 ...
-download: MG779400.1 JQ063126.1 KT595679.1 MG779342.1 KT321953.1 ...
-download: MG779407.1 MG779321.1 MG779351.1 MG779349.1 MG779336.1 ...
+txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] NOT WGS[KYWD]
+355
+000 - 100 2.8e+01%
+100 - 200 5.6e+01%
+200 - 300 8.5e+01%
+300 - 355 1e+02%
+data/315393-1.fasta.bgz.tmp data/315393-1.fasta.bgz
+data/315393-2.fasta.bgz.tmp data/315393-2.fasta.bgz
+data/315393-3.fasta.bgz.tmp data/315393-3.fasta.bgz
+data/315393-4.fasta.bgz.tmp data/315393-4.fasta.bgz
+index...
 ```
-
-Update the FFIDX environment variable.
 
 List the results in the directory.
 
@@ -145,10 +110,7 @@ du -sh data/315393.*
 ```
 
 ```
-9.0M	data/315393.0.gbk.bgz
- 10M	data/315393.1.gbk.bgz
-5.0M	data/315393.2.gbk.bgz
- 36K	data/315393.idx
+ 40K	data/315393.db
 ```
 
 ### Ex-2
@@ -157,30 +119,12 @@ Update the same repository.
 
 
 ```bash
-ffdb.py 315393
+ffdb.py data/315393
 ```
 
 ```
-term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] AND 2019/05/04:3000[MDAT]
-count:  0
-new:  0
-cached: 0
-```
-
-### Ex-2
-
-Update the same repository, but disable the modified date limiter.
-
-
-```bash
-ffdb.py 315393 -no-mdat
-```
-
-```
-term: txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP]
-count:  237
-new:  0
-cached: 0
+txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] NOT WGS[KYWD] AND 2020/08/03:3000[MDAT]
+0
 ```
 
 ## ffidx.py
@@ -336,175 +280,17 @@ GAAAGCGGCAATTCGGGCAACACAACACCACCGGTTAAGTACTTTAATGTAAGCTTTTTG
 ATGAAAACTGGCCACCGCCCTCTTTTGAATACTTCGCTGTCTTTACTCGGCGTACTGATA
 ```
 
-## fffilter.py
+## ffgbktax.py
 
-The ```fffilter.py``` script filters for records with matching regex patterns and/or length bounds.
-
-
-```bash
-fffilter.py -h
-```
-
-```
-usage: fffilter.py [-h] [-fmt-in FMT_IN] [-fmt-out FMT_OUT] file query
-
-filter sequence records by header and/or length
-
-positional arguments:
-  file                  the sequence file
-  query                 the query to filter records
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -fmt-in FMT_IN, --fmt-in FMT_IN
-                        the sequence file format (input) (default: fasta)
-  -fmt-out FMT_OUT, --fmt-out FMT_OUT
-                        the sequence file format (output) (default: None)
-```
-
-### Query Syntax
-
-The length syntax is the LEN keyword + operator + number or range. Choose an operator: <, <=, =, ==, >=, >, IN. The range format is two numbers separated by a dash.
-
-The query syntax is the LIKE keyword + property + regex. The property is a [SeqRecord](http://biopython.org/DIST/docs/api/Bio.SeqRecord.SeqRecord-class.html) property.
-
-To negate the results, prepend an N to the keyword: NLEN, NLIKE.
-
-TODO: allow access to subproperties and fields, such as annotations and qualifiers...
-
-### Ex-1
-
-Filter sequences based on a regex pattern.
+The ```ffgbktax.py``` script generates a taxonomy mapping from a GenBank file suitable for use with the ```makeblastdb``` command.
 
 
 ```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
+ffgbktax.py -h
 ```
 
 ```
-DEFINITION  Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus,
-DEFINITION  Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus,
-DEFINITION  Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus,
-```
-
-Negate the previous search.
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLIKE description CO[0-9]+ " -fmt-in gb | grep ^DEFINITION
-```
-
-```
-DEFINITION  Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete
-DEFINITION  Vibrio cholerae genes for o-antigen synthesis, strain O22, complete
-DEFINITION  Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial
-```
-
-### Ex-2
-
-Filter sequences based on length bounds: 45000 bp +/- 5000.
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "LEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
-```
-
-```
-LOCUS       AB012956               46721 bp    DNA     linear   BCT 16-OCT-1999
-LOCUS       AB012957               45993 bp    DNA     linear   BCT 16-OCT-1999
-```
-
-Negate the previous search.
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fffilter.py - "NLEN IN 40000-50000" -fmt-in gb | grep ^LOCUS
-```
-
-```
-LOCUS       AF390573               27552 bp    DNA     linear   BCT 08-MAY-2002
-LOCUS       GU576497               30443 bp    DNA     linear   BCT 25-JUL-2016
-LOCUS       GU576498               19487 bp    DNA     linear   BCT 25-JUL-2016
-LOCUS       GU576499               26128 bp    DNA     linear   BCT 01-APR-2011
-```
-
-## fflen.py
-
-The ```fflen.py``` script computes the length for each sequence in the flat-file.
-
-
-```bash
-fflen.py -h
-```
-
-```
-usage: fflen.py [-h] [-fmt FMT] [-separator SEP] [-summary] [-fields] file
-
-compute the length of each record in the file
-
-positional arguments:
-  file                  the sequence file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -fmt FMT, --fmt FMT, -format FMT, --format FMT
-                        the sequence file format (default: fasta)
-  -separator SEP, --separator SEP
-                        the table delimiter, default is the tab character
-                        (default: )
-  -summary, --summary, -stats, --stats
-                        the flag to compute basic summary statistics (default:
-                        False)
-  -fields, -fields, -header, --header
-                        the flag to output a header (default: False)
-```
-
-### Ex-1
-
-List the length of each record in the file.
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fflen.py - -fmt gb
-```
-
-```
-AB012956.1	Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete cds	46721
-AB012957.1	Vibrio cholerae genes for o-antigen synthesis, strain O22, complete cds	45993
-AF390573.1	Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence	27552
-GU576497.1	Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus, partial sequence	30443
-GU576498.1	Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus, partial sequence	19487
-GU576499.1	Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence	26128
-```
-
-### Ex-2
-
-Compute the length summary statistics.
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | fflen.py - -fmt gb -stat
-```
-
-```
-mean	32720.666666666668
-median	28997.5
-std	10187.085233547208
-min	19487
-max	46721
-```
-
-## ffgbk2taxmap.py
-
-The ```ffgbk2taxmap.py``` script generates a taxonomy mapping from a GenBank file suitable for use with the ```makeblastdb``` command.
-
-
-```bash
-ffgbk2taxmap.py -h
-```
-
-```
-usage: ffgbk2taxmap.py [-h] file
+usage: ffgbktax.py [-h] file
 
 create a taxid map suitable for makeblastdb from a GenBank file
 
@@ -521,7 +307,7 @@ Generate a taxonomy mapping from a GenBank file.
 
 
 ```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | ffgbk2taxmap.py - 
+gunzip -c data/oantigen.[1-2].gbk.gz | ffgbktax.py - 
 ```
 
 ```
@@ -543,17 +329,17 @@ ffuseq.py -h
 ```
 
 ```
-usage: ffuseq.py [-h] [-fmt FMT] [-map MAP] file
+usage: ffuseq.py [-h] [-map MAP] [-fmt FMT] file
 
 compute the unique set of sequences
 
 positional arguments:
-  file                 the sequence file
+  file        the sequence file
 
 optional arguments:
-  -h, --help           show this help message and exit
-  -fmt FMT, --fmt FMT
-  -map MAP, --map MAP  the path prefix for the output files (default: None)
+  -h, --help  show this help message and exit
+  -map MAP    the path prefix for the output files (default: None)
+  -fmt FMT    the sequence file format (default: fasta)
 ```
 
 ### Ex-1
@@ -574,11 +360,11 @@ grep ^LOCUS data/urec.gbk
 
 ```
 LOCUS       AB012956               46721 bp    DNA     linear   BCT 16-OCT-1999
-LOCUS       AB012957               45993 bp    DNA     linear   BCT 16-OCT-1999
-LOCUS       AF390573               27552 bp    DNA     linear   BCT 08-MAY-2002
 LOCUS       GU576497               30443 bp    DNA     linear   BCT 25-JUL-2016
+LOCUS       AB012957               45993 bp    DNA     linear   BCT 16-OCT-1999
 LOCUS       GU576498               19487 bp    DNA     linear   BCT 25-JUL-2016
 LOCUS       GU576499               26128 bp    DNA     linear   BCT 01-APR-2011
+LOCUS       AF390573               27552 bp    DNA     linear   BCT 08-MAY-2002
 ```
 
 ```cat``` the unique record mapping file.
@@ -589,131 +375,12 @@ cat data/urec.tsv
 ```
 
 ```
-idx	key	id	description
-1	Wp7X+fuoYSmh9S+8KAOlVOjmMJM	AB012956.1	Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete cds
-2	gDDKQoXOexqsX3QTZMKiTk3PRI0	AB012957.1	Vibrio cholerae genes for o-antigen synthesis, strain O22, complete cds
-3	sviBFiv+KU0rRAAD1MBHU32gkac	AF390573.1	Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence
-4	aXZq6FaHBW/pvgXXUJkH1mXCBMs	GU576497.1	Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus, partial sequence
-5	m3SE/AUt/Wg2D2VfZ92MG7otRAs	GU576498.1	Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus, partial sequence
-6	oAPc1vtYNp/vJduAtaFEk7xP69E	GU576499.1	Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence
-```
-
-## ffgbksrc.py
-
-The ```ffgbksrc``` command queries GenBank metadata from the **source** feature.
-
-
-```bash
-ffgbksrc.py -h
-```
-
-```
-usage: ffgbksrc.py [-h] [-fields] [-separator SEP] file keys [keys ...]
-
-output a table of source feature metadata from a GenBank file
-
-positional arguments:
-  file                  the sequence file
-  keys                  the qualifier keys
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -fields, -fields, -header, --header
-                        the flag to output a header (default: False)
-  -separator SEP, --separator SEP
-                        the table delimiter, the default is a tab character
-                        (default: )
-```
-
-### Key Syntax
-
-The key syntax is key:default:join, where key is the key qualifier, default is the default value if the key is missing, and join is a character to join multiple values under the same key. The default and join specifiers are optional.
-
-### Ex-1
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | ffgbksrc.py - strain db_xref:0:,
-```
-
-```
-AB012956.1	MO45	taxon:666
-AB012957.1	O22	taxon:666
-AF390573.1	1322-69	taxon:185332
-GU576497.1	CO603B	taxon:666
-GU576498.1	CO545	taxon:666
-GU576499.1	CO845	taxon:666
-```
-
-## fffnagff2gbk.py
-
-The ```fffnagff2gbk.py``` script combines FASTA and GFF3 files to create GenBank files with feature annotations.
-
-
-```bash
-fffnagff2gbk.py -h
-```
-
-```
-usage: fffnagff2gbk.py [-h] -fna FNA [FNA ...] -gff GFF [GFF ...] [-out OUT]
-
-combine FASTA and GFF3 files to create GenBank files
-
-optional arguments:
-  -h, --help           show this help message and exit
-  -fna FNA [FNA ...]   the sequence files (default: None)
-  -gff GFF [GFF ...]   the gff files (default: None)
-  -out OUT, --out OUT
-```
-
-### Ex-1
-
-...
-
-## ffkmer.py
-
-The ```ffkmer``` script k-merizes sequences into separate records.
-
-
-```bash
-ffkmer.py -h
-```
-
-```
-usage: ffkmer.py [-h] [-fmt FMT] [-step STEP] file size
-
-calculate the set of k-mers
-
-positional arguments:
-  file                  the sequence file
-  size                  the k-mer size
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -fmt FMT, --fmt FMT, -format FMT, --format FMT
-                        the sequence file format (default: fasta)
-  -step STEP            the next position to scan in the sequence (default: 1)
-```
-
-### Ex-1
-
-Calculate all 100-mers.
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz 2> /dev/null | ffkmer.py - 100 -fmt gb | head | grep -A 2 \>
-```
-
-```
->AB012956.1-0
-GATCAATTTTTTCATTGGGCGAATTCCTTAGTAAAACCTAATTCGGTCAAGGTATTTTCGAGAGCTCCACGATTTTGCATTACAATCGCTAAGGCATTTT
->AB012956.1-1
-ATCAATTTTTTCATTGGGCGAATTCCTTAGTAAAACCTAATTCGGTCAAGGTATTTTCGAGAGCTCCACGATTTTGCATTACAATCGCTAAGGCATTTTT
->AB012956.1-2
-TCAATTTTTTCATTGGGCGAATTCCTTAGTAAAACCTAATTCGGTCAAGGTATTTTCGAGAGCTCCACGATTTTGCATTACAATCGCTAAGGCATTTTTT
->AB012956.1-3
-CAATTTTTTCATTGGGCGAATTCCTTAGTAAAACCTAATTCGGTCAAGGTATTTTCGAGAGCTCCACGATTTTGCATTACAATCGCTAAGGCATTTTTTC
->AB012956.1-4
-AATTTTTTCATTGGGCGAATTCCTTAGTAAAACCTAATTCGGTCAAGGTATTTTCGAGAGCTCCACGATTTTGCATTACAATCGCTAAGGCATTTTTTCC
+idx	key	id	description	length
+1	Wp7X+fuoYSmh9S+8KAOlVOjmMJM	AB012956.1	Vibrio cholerae genes for O-antigen synthesis, strain MO45, complete cds	46721
+2	aXZq6FaHBW/pvgXXUJkH1mXCBMs	GU576497.1	Vibrio cholerae strain CO603B O-antigen biosynthesis gene locus, partial sequence	30443
+3	gDDKQoXOexqsX3QTZMKiTk3PRI0	AB012957.1	Vibrio cholerae genes for o-antigen synthesis, strain O22, complete cds	45993
+4	m3SE/AUt/Wg2D2VfZ92MG7otRAs	GU576498.1	Vibrio cholerae strain CO545 O-antigen biosynthesis gene locus, partial sequence	19487
+5	oAPc1vtYNp/vJduAtaFEk7xP69E	GU576499.1	Vibrio cholerae strain CO845 O-antigen biosynthesis gene locus, partial sequence	26128
+6	sviBFiv+KU0rRAAD1MBHU32gkac	AF390573.1	Vibrio cholerae serogroup O37 O-antigen biosynthesis region, partial sequence	27552
 ```
 

@@ -11,15 +11,12 @@ def parse_cds(file):
     for record in SeqIO.parse(file, "genbank"):
         for feature in record.features:
             if feature.type == "CDS":
-                try:
-                    protein_id = feature.qualifiers["protein_id"][0]
-                    product = feature.qualifiers.get("product", ["n/a"])[0]
-                    cds = feature.extract(record)
-                    cds.id = f"lcl|{protein_id}"
-                    cds.description = f"{record.id}|{product}|{feature.location}"
-                    yield cds
-                except:
-                    pass
+                protein_id = feature.qualifiers["protein_id"][0]
+                product = feature.qualifiers.get("product", ["n/a"])[0]
+                cds = feature.extract(record)
+                cds.id = protein_id
+                cds.description = f"{record.id}|{feature.location} {product}"
+                yield cds
 
 
 def parse_argv(argv):

@@ -7,17 +7,21 @@ from signal import signal, SIGPIPE, SIG_DFL
 from Bio import SeqIO
 
 
+def gbktax(record):
+    feats = getattr(record, "features", [{}])
+    quals = getattr(feats[0], "qualifiers", {})
+    db_xref = quals.get("db_xref", ["taxon:0"])
+    taxon = next((ele for ele in db_xref if ele.startswith("taxon:")))
+    return taxon.split(":")[-1]
+
+
 def parse_argv(argv):
     parser = ArgumentParser(
         description="create a taxid map suitable for makeblastdb from a GenBank file",
-        formatter_class=ArgumentDefaultsHelpFormatter
+        formatter_class=ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument(
-        "file",
-        type=FileType(),
-        help="the sequence file"
-    )
+    parser.add_argument("file", type=FileType(), help="the sequence file")
 
     args = parser.parse_args(argv)
 
@@ -29,12 +33,7 @@ def main(argv):
 
     with args.file as file:
         for record in SeqIO.parse(file, "genbank"):
-            feats = getattr(record, "features", [{}])
-            quals = getattr(feats[0], "qualifiers", {})
-            db_xref = quals.get("db_xref", ["taxon:0"])
-            taxon = next((ele for ele in db_xref if ele.startswith("taxon:")))
-            taxon = taxon.split(":")[-1]
-            print(record.id, taxon)
+            print(record.id, gbktax(record))
 
     return 0
 

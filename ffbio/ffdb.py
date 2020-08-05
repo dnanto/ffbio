@@ -77,10 +77,11 @@ def main(argv):
             fdat = OrderedDict(conn.execute("SELECT * FROM file_data"))
             # key -> value
             meta = OrderedDict(conn.execute("SELECT * FROM meta_data"))
-            # override args
-            args.db = meta["db"]
-            args.rettype = meta["format"]
-            args.term = args.term if args.xmdat else f"{meta['term']} AND {meta['mdat']}:3000[MDAT]"
+            # override args if the index database has metadata
+            args.db = meta.get("db", args.db)
+            args.rettype = meta.get("format", args.rettype)
+            if not args.xmdat and "term" in meta and "mdat" in meta:
+                args.term = f"{meta['term']} AND {meta['mdat']}:3000[MDAT]"
 
     # remote - local accessions
     logging.info(args.term)

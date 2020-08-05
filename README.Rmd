@@ -26,26 +26,11 @@ Sys.setenv(PATH = PATH, PYTHONPATH = PYTHONPATH)
 
 # Abstract
 
-**ffdb** is a collection of scripts to work with flat-file sequence databases and help me complete my thesis.
+**ffbio** is a collection of scripts to work with flat-file sequence databases and help me complete my thesis.
 
 Note: this repository is experimental...
+
 Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.
-
-# Dependencies
-
-## FFIDX
-
-This is an optional environment variable similar to BLASTDB. It is a colon-separated list of absolute or relative paths to search for indexed sets of flat-files. The examples take advantage of this feature. Otherwise, it is possible to specify the path to the index to the script directly.
-
-```{r}
-Sys.setenv(FFIDX = file.path(getwd(), "data"))
-```
-
-```{bash}
-echo ${FFIDX/~/\~}
-```
-
-## Note
 
 * The Pipfile lists the Python requirements.
 * For convenience, add the script root directory to PATH.
@@ -100,14 +85,14 @@ Create an index using multiple multi-GenBank files and query some accessions.
 
 ```{bash}
 ls data/oantigen.[1-2].gbk.gz | \
-  xargs ffidx.py data/oantigen.idx -acc AF390573.1 GU576499.1 -fmt-idx gb -filenames | \
+  xargs ffidx.py data/oantigen.db -entry AF390573.1 GU576499.1 -fi gb -filenames | \
   grep -A 2 \>
 ```
 
 List the index.
 
 ```{bash}
-du -sh data/oantigen.idx
+du -sh data/oantigen.db
 ```
 
 ### Ex-2
@@ -116,7 +101,7 @@ Same thing, except create the index temporarily in memory.
 
 ```{bash}
 ls data/oantigen.[1-2].gbk.gz | \
-  xargs ffidx.py ":memory:" -acc AF390573.1 GU576499.1 -fmt-idx gb -filenames | \
+  xargs ffidx.py ":memory:" -entry AF390573.1 GU576499.1 -fi gb -filenames | \
   grep -A 2 \>
 ```
 
@@ -125,7 +110,7 @@ ls data/oantigen.[1-2].gbk.gz | \
 Dump all sequences as GenBank records.
 
 ```{bash}
-ffidx.py oantigen -dump -fmt-o gb | grep ^DEFINITION
+ffidx.py data/oantigen.db -dump -fo gb | grep ^DEFINITION
 ```
 
 ## ffcds.py

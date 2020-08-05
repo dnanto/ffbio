@@ -37,9 +37,9 @@ def parse_argv(argv):
 def main(argv):
     args = parse_argv(argv[1:])
 
-    if args.path.name.endswith(".db"):
+    if args.path.name.endswith(".db") or args.path.name == ":memory:":
         args.fi = None if args.path.exists() else args.fi
-        db = SeqIO.index_db(str(args.path))
+        db = SeqIO.index_db(str(args.path), args.filenames, args.fi)
     else:
         args.path = sys.stdin if args.path.name == "-" else args.path
         db = SeqIO.to_dict(SeqIO.parse(args.path, args.fi))

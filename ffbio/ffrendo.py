@@ -2,15 +2,14 @@
 
 
 import sys
-from argparse import ArgumentDefaultsHelpFormatter
-from argparse import ArgumentParser, FileType
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType
 from collections import OrderedDict
 from itertools import combinations
-from signal import signal, SIGPIPE, SIG_DFL
+from signal import SIG_DFL, SIGPIPE, signal
 
 from Bio import Restriction
 
-from ffbio.ffparse import ffsniff, ffparse
+from ffbio.ffparse import ffparse, ffsniff
 
 
 def parse_argv(argv):

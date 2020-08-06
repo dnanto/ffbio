@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
-from signal import signal, SIGPIPE, SIG_DFL
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType
+from signal import SIG_DFL, SIGPIPE, signal
 
 from Bio import SeqIO
 

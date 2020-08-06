@@ -2,9 +2,9 @@
 
 import fileinput
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType
 from io import IOBase, StringIO
-from signal import signal, SIGPIPE, SIG_DFL
+from signal import SIG_DFL, SIGPIPE, signal
 
 from Bio import SeqIO
 
@@ -46,14 +46,10 @@ def openhook(fn, mode):
 def parse_argv(argv):
     parser = ArgumentParser(
         description="parse sequence records, sniff format automatically",
-        formatter_class=ArgumentDefaultsHelpFormatter
+        formatter_class=ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument(
-        "file",
-        type=FileType(),
-        help="the sequence file"
-    )
+    parser.add_argument("file", type=FileType(), help="the sequence file")
 
     args = parser.parse_args(argv)
 

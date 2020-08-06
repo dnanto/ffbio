@@ -13,7 +13,7 @@ output:
 
 # Abstract
 
-**ffbio** is a collection of scripts to work with flat-file sequence databases and help me complete my thesis.
+**ffbio** is a collection of scripts to work with flat-file sequence databases and help complete my dissertation.
 
 Note: this repository is experimental...
 
@@ -256,45 +256,6 @@ GAAAGCGGCAATTCGGGCAACACAACACCACCGGTTAAGTACTTTAATGTAAGCTTTTTG
 --
 >BAA33587.1 AB012956.1|[10521:12714](-) n/a
 ATGAAAACTGGCCACCGCCCTCTTTTGAATACTTCGCTGTCTTTACTCGGCGTACTGATA
-```
-
-## ffgbktax.py
-
-The ```ffgbktax.py``` script generates a taxonomy mapping from a GenBank file suitable for use with the ```makeblastdb``` command.
-
-
-```bash
-ffgbktax.py -h
-```
-
-```
-usage: ffgbktax.py [-h] file
-
-create a taxid map suitable for makeblastdb from a GenBank file
-
-positional arguments:
-  file        the sequence file
-
-optional arguments:
-  -h, --help  show this help message and exit
-```
-
-### Ex-1
-
-Generate a taxonomy mapping from a GenBank file.
-
-
-```bash
-gunzip -c data/oantigen.[1-2].gbk.gz | ffgbktax.py - 
-```
-
-```
-AB012956.1 666
-AB012957.1 666
-AF390573.1 185332
-GU576497.1 666
-GU576498.1 666
-GU576499.1 666
 ```
 
 ## ffuseq.py

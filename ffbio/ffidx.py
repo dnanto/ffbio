@@ -25,7 +25,7 @@ def parse_argv(argv):
         help="the flag to only output the descriptions",
     )
     parser.add_argument("-entry", nargs="+", help="the accessions to retrieve")
-    parser.add_argument("-entry-batch", help="the file of accessions to retrieve")
+    parser.add_argument("-batch", help="the file of accessions to retrieve")
     parser.add_argument("-fi", default="fasta", help="the sequence file format (input)")
     parser.add_argument("-fo", default="fasta", help="the sequence file format (output)")
 
@@ -50,8 +50,9 @@ def main(argv):
     else:
         if args.entry:
             keys = args.entry
-        if args.entry_batch:
-            with args.entry_batch as stream:
+        if args.batch:
+            args.batch = sys.stdin if args.batch == "-" else args.batch
+            with args.batch as stream:
                 keys += list(map(str.strip, stream))
 
     records = (db[key] for key in keys)

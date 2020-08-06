@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType
 from collections import OrderedDict
 from itertools import groupby
 from pathlib import Path
-from signal import signal, SIGPIPE, SIG_DFL
+from signal import SIG_DFL, SIGPIPE, signal
 
 from Bio import SeqIO
 from Bio.SeqUtils.CheckSum import seguid
 
-from ffbio.ffparse import ffsniff, ffparse
+from ffbio.ffparse import ffparse, ffsniff
 
 
 def keyfunc(record):

@@ -7,3 +7,4 @@ data/*.db
 data/*.idx
 data/*.log
 data/urec.*
+README.html

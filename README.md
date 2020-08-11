@@ -15,13 +15,13 @@ output:
 
 **ffbio** is a collection of scripts to work with flat-file sequence databases and help complete my dissertation.
 
+To install, run: ```pip install git+https://github.com/dnanto/ffbio#egg=ffbio```.
+
 Note: this repository is experimental...
 
 Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.
 
-* The Pipfile lists the Python requirements.
-* For convenience, add the script root directory to PATH.
-* Also, it is convenient to know the NCBI [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
+Note: [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
 
 # Scripts
 

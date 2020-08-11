@@ -8,3 +8,17 @@ data/*.idx
 data/*.log
 data/urec.*
 README.html
+ffbio_dnanto.egg-info/top_level.txt
+ffbio_dnanto.egg-info/SOURCES.txt
+ffbio_dnanto.egg-info/PKG-INFO
+ffbio_dnanto.egg-info/dependency_links.txt
+dist/ffbio_dnanto-0.0.1-py3-none-any.whl
+dist/ffbio-dnanto-0.0.1.tar.gz
+build/lib/ffbio/ffuseq.py
+build/lib/ffbio/ffrendo.py
+build/lib/ffbio/ffqual.py
+build/lib/ffbio/ffparse.py
+build/lib/ffbio/ffidx.py
+build/lib/ffbio/ffdb.py
+build/lib/ffbio/ffcds.py
+build/lib/ffbio/__init__.py

@@ -3,11 +3,12 @@
 import os
 import sqlite3
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from pathlib import Path
-from signal import signal, SIGPIPE, SIG_DFL
-from Bio import SeqIO
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType
 from collections import OrderedDict
+from pathlib import Path
+from signal import SIG_DFL, SIGPIPE, signal
+
+from Bio import SeqIO
 
 
 def to_odict(sequences, key_function=None):
@@ -42,7 +43,7 @@ def parse_argv(argv):
         help="the flag to only output the descriptions",
     )
     parser.add_argument("-entry", nargs="+", help="the accessions to retrieve")
-    parser.add_argument("-batch", help="the file of accessions to retrieve")
+    parser.add_argument("-batch", type=FileType(), help="the file of accessions to retrieve")
     parser.add_argument(
         "-index", action="store_true", help="the flag treats -entry/-batch as indexes",
     )
@@ -71,7 +72,6 @@ def main(argv):
         if args.entry:
             keys = args.entry
         if args.batch:
-            args.batch = sys.stdin if args.batch == "-" else args.batch
             with args.batch as stream:
                 keys += list(map(str.strip, stream))
         if args.index:

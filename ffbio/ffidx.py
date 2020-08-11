@@ -7,6 +7,23 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
 from signal import signal, SIGPIPE, SIG_DFL
 from Bio import SeqIO
+from collections import OrderedDict
+
+
+def to_odict(sequences, key_function=None):
+    def _default_key_function(rec):
+        return rec.id
+
+    if key_function is None:
+        key_function = _default_key_function
+
+    d = OrderedDict()
+    for record in sequences:
+        key = key_function(record)
+        if key in d:
+            raise ValueError("Duplicate key '%s'" % key)
+        d[key] = record
+    return d
 
 
 def parse_argv(argv):
@@ -26,6 +43,9 @@ def parse_argv(argv):
     )
     parser.add_argument("-entry", nargs="+", help="the accessions to retrieve")
     parser.add_argument("-batch", help="the file of accessions to retrieve")
+    parser.add_argument(
+        "-index", action="store_true", help="the flag treats -entry/-batch as indexes",
+    )
     parser.add_argument("-fi", default="fasta", help="the sequence file format (input)")
     parser.add_argument("-fo", default="fasta", help="the sequence file format (output)")
 
@@ -42,7 +62,7 @@ def main(argv):
         db = SeqIO.index_db(str(args.path), args.filenames, args.fi)
     else:
         args.path = sys.stdin if args.path.name == "-" else args.path
-        db = SeqIO.to_dict(SeqIO.parse(args.path, args.fi))
+        db = to_odict(SeqIO.parse(args.path, args.fi))
 
     keys = []
     if args.dump:
@@ -54,6 +74,10 @@ def main(argv):
             args.batch = sys.stdin if args.batch == "-" else args.batch
             with args.batch as stream:
                 keys += list(map(str.strip, stream))
+        if args.index:
+            idxs = list(keys)
+            dbkeys = list(db.keys())
+            keys = (dbkeys[int(idx) - 1] for idx in idxs)
 
     records = (db[key] for key in keys)
     if args.descriptions:

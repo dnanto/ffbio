@@ -21,10 +21,12 @@ def parse_argv(argv):
     )
 
     parser.add_argument("file", type=FileType(), help="the sequence file")
-    parser.add_argument("keys", nargs="*")
-    parser.add_argument("-default", default="")
-    parser.add_argument("-joiner", dest="joi", default=";")
-    parser.add_argument("-separator", dest="sep", default="\t", nargs="*")
+    parser.add_argument("keys", nargs="*", help="the qualifier keys")
+    parser.add_argument("-default", default="?", help="the default value for missing entries")
+    parser.add_argument("-joiner", dest="joi", default=";", help="the field value join character")
+    parser.add_argument(
+        "-separator", dest="sep", default="\t", nargs="*", help="the table separator"
+    )
 
     args = parser.parse_args(argv)
 

@@ -50,7 +50,7 @@ def parse_argv(argv):
     )
     parser.add_argument("-fi", default="fasta", help="the sequence file format (input)")
     parser.add_argument("-fo", default="fasta", help="the sequence file format (output)")
-    parser.add_argument("-alphabet", default="unambiguous_dna", help="the alphabet")
+    parser.add_argument("-alphabet", default="ambiguous_dna", help="the alphabet")
 
     args = parser.parse_args(argv)
 

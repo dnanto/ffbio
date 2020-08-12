@@ -50,7 +50,7 @@ def parse_argv(argv):
     )
     parser.add_argument("-fi", default="fasta", help="the sequence file format (input)")
     parser.add_argument("-fo", default="fasta", help="the sequence file format (output)")
-    parser.add_argument("-alphabet", help="the alphabet")
+    parser.add_argument("-alphabet", default="unambiguous_dna", help="the alphabet")
 
     args = parser.parse_args(argv)
 
@@ -60,7 +60,7 @@ def parse_argv(argv):
 def main(argv):
     args = parse_argv(argv[1:])
 
-    args.alphabet = getattr(IUPAC, args.alphabet)()
+    args.alphabet = getattr(IUPAC, args.alphabet)
 
     if args.path.name.endswith(".db") or args.path.name == ":memory:":
         args.fi = None if args.path.exists() else args.fi

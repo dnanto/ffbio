@@ -63,7 +63,7 @@ def main(argv):
     args.alphabet = getattr(IUPAC, args.alphabet)
 
     if args.path.name.endswith(".db") or args.path.name == ":memory:":
-        args.fi = None if args.path.exists() else args.fi
+        args.fi, args.alphabet = (None, None) if args.path.exists() else (args.fi, args.alphabet)
         db = SeqIO.index_db(str(args.path), args.filenames, args.fi, args.alphabet)
     else:
         args.path = sys.stdin if args.path.name == "-" else args.path

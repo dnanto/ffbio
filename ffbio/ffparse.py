@@ -59,9 +59,9 @@ def parse_argv(argv):
 def main(argv):
     args = parse_argv(argv[1:])
 
-    with args.file as file:
-        sample, fmt = ffsniff(file)
-        for record in ffparse(file, fmt, sample=sample):
+    with args.file as stream:
+        sample, fmt = ffsniff(stream)
+        for record in ffparse(stream, fmt, sample=sample):
             print(record.id)
 
     return 0

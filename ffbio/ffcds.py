@@ -7,8 +7,8 @@ from signal import SIG_DFL, SIGPIPE, signal
 from Bio import SeqIO
 
 
-def parse_cds(file):
-    for record in SeqIO.parse(file, "genbank"):
+def parse_cds(stream):
+    for record in SeqIO.parse(stream, "genbank"):
         for feature in record.features:
             if feature.type == "CDS":
                 protein_id = feature.qualifiers["protein_id"][0]
@@ -34,8 +34,8 @@ def parse_argv(argv):
 
 def main(argv):
     args = parse_argv(argv[1:])
-    with args.file as file:
-        SeqIO.write(parse_cds(file), sys.stdout, "fasta")
+    with args.file as stream:
+        SeqIO.write(parse_cds(stream), sys.stdout, "fasta")
 
 
 if __name__ == "__main__":

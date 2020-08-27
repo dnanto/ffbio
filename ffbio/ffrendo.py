@@ -41,9 +41,9 @@ def main(argv):
     enzymes = [getattr(Restriction, key) for key in args.enzymes]
 
     data = OrderedDict()
-    with args.file as file:
-        sample, fmt = ffsniff(file)
-        for rec in ffparse(file, fmt, sample=sample):
+    with args.file as stream:
+        sample, fmt = ffsniff(stream)
+        for rec in ffparse(stream, fmt, sample=sample):
             is_linear = rec.annotations.get("topology", not args.circular)
             data[rec.id] = {len(seq) for enz in enzymes for seq in enz.catalyze(rec.seq, is_linear)}
 

@@ -9,7 +9,6 @@ from pathlib import Path
 from signal import SIG_DFL, SIGPIPE, signal
 
 from Bio import SeqIO
-from Bio.Alphabet import IUPAC
 
 
 def to_odict(sequences, key_function=None):
@@ -50,7 +49,6 @@ def parse_argv(argv):
     )
     parser.add_argument("-fi", default="fasta", help="the sequence file format (input)")
     parser.add_argument("-fo", default="fasta", help="the sequence file format (output)")
-    parser.add_argument("-alphabet", default="ambiguous_dna", help="the alphabet")
 
     args = parser.parse_args(argv)
 
@@ -60,14 +58,12 @@ def parse_argv(argv):
 def main(argv):
     args = parse_argv(argv[1:])
 
-    args.alphabet = getattr(IUPAC, args.alphabet)
-
     if args.path.name.endswith(".db") or args.path.name == ":memory:":
-        args.fi, args.alphabet = (None, None) if args.path.exists() else (args.fi, args.alphabet)
-        db = SeqIO.index_db(str(args.path), args.filenames, args.fi, args.alphabet)
+        args.fi = None if args.path.exists() else args.fi
+        db = SeqIO.index_db(str(args.path), args.filenames, args.fi)
     else:
         args.path = sys.stdin if args.path.name == "-" else args.path
-        db = to_odict(SeqIO.parse(args.path, args.fi, args.alphabet))
+        db = to_odict(SeqIO.parse(args.path, args.fi))
 
     keys = []
     if args.dump:

@@ -22,3 +22,4 @@ build/lib/ffbio/ffidx.py
 build/lib/ffbio/ffdb.py
 build/lib/ffbio/ffcds.py
 build/lib/ffbio/__init__.py
+.DS_Store

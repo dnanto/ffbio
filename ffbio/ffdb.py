@@ -105,7 +105,7 @@ def main(argv):
     # truthy indicates new accessions
     if paths:
         # combine previous files with new ones
-        paths = list(map(Path, fdat.values())) + paths
+        paths = [args.repo.parent / ele for ele in fdat.values()] + paths
         # rename with zero-fill
         width = len(str(len(paths)))
         paths = {
@@ -113,8 +113,9 @@ def main(argv):
             for idx, ele in enumerate(paths, start=1)
         }
         for key, val in paths.items():
-            logging.info(f"{key} -> {val}")
-            key.rename(val)
+            if key != val:
+                logging.info(f"{key} -> {val}")
+                key.rename(val)
         try:
             path_tmp = path_db.with_suffix(".tmp")
             path_tmp.exists() and path_tmp.unlink()

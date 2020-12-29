@@ -68,7 +68,8 @@ def main(argv):
     logging.info(argv)
 
     # metadata
-    accs, fdat, meta = set(), {}, dict(mdat=datetime.now().strftime("%Y/%m/%d"))
+    now = datetime.now().strftime("%Y/%m/%d")
+    accs, fdat, meta = set(), {}, dict(mdat=now)
     if path_db.exists():
         with sqlite3.connect(path_db) as conn:
             # 0 -> key
@@ -125,7 +126,7 @@ def main(argv):
             with sqlite3.connect(path_tmp) as conn:
                 conn.execute(
                     "INSERT INTO meta_data VALUES ('db', ?), ('term', ?), ('mdat', ?)",
-                    (args.db, args.term, meta["mdat"]),
+                    (args.db, args.term, now),
                 )
             path_tmp.rename(path_db)
         except Exception as e:

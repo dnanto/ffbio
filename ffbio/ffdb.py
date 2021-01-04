@@ -4,7 +4,7 @@ import logging
 import sqlite3
 import sys
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from collections import OrderedDict
+from collections import OrderedDict as odict
 from datetime import datetime
 from itertools import chain
 from math import ceil
@@ -37,9 +37,9 @@ def parse_argv(argv):
     parser.add_argument("repo", type=Path, help="the target file to create/update")
     parser.add_argument("-db", default="nuccore", help="the NCBI database")
     parser.add_argument("-term", help="the NCBI query term")
+    parser.add_argument("-diff", action="store_true", help="the flag to download set difference")
     parser.add_argument("-rettype", default="fasta", help="the sequence file format")
     parser.add_argument("-retmax", type=int, default=1000, help="the records to post at a time")
-    parser.add_argument("-xmdat", action="store_true", help="flag to disable modified date limit")
     parser.add_argument("-email", default="", help="the e-mail to identify yourself to NCBI")
 
     args = parser.parse_args(argv)
@@ -68,25 +68,29 @@ def main(argv):
     logging.info(argv)
 
     # metadata
-    now = datetime.now().strftime("%Y/%m/%d")
-    accs, fdat, meta = set(), {}, dict(mdat=now)
+    accs, fdat, mdat = set(), {}, ""
+    db, rettype, baseterm = args.db, args.rettype, args.term
     if path_db.exists():
         with sqlite3.connect(path_db) as conn:
             # 0 -> key
             accs = {row[0] for row in conn.execute("SELECT key FROM offset_data")}
             # file_number -> name
-            fdat = OrderedDict(conn.execute("SELECT * FROM file_data"))
+            fdat = odict(conn.execute("SELECT * FROM file_data"))
             # key -> value
-            meta = OrderedDict(conn.execute("SELECT * FROM meta_data"))
+            meta = odict(conn.execute("SELECT * FROM meta_data"))
             # override args if the index database has metadata
-            args.db = meta.get("db", args.db)
-            args.rettype = meta.get("format", args.rettype)
-            if not args.xmdat and "term" in meta and "mdat" in meta:
-                args.term = f"{meta['term']} AND {meta['mdat']}:3000[MDAT]"
+            # mdat is the previous query execution start time
+            db = meta.get("db", db)
+            mdat = meta.get("mdat", mdat)
+            rettype = meta.get("format", rettype)
+            baseterm = meta.get("term", baseterm)
 
     # remote - local accessions
-    logging.info(args.term)
-    accs = list(set(chain.from_iterable(esearch_accs(args.db, args.term, args.retmax))) - accs)
+    term = baseterm + (f" AND {mdat}:3000[MDAT]" if mdat else "")
+    logging.info(term)
+    now = datetime.now().strftime("%Y/%m/%d")
+    remote_accs = set(chain.from_iterable(esearch_accs(db, term, args.retmax)))
+    accs = list(remote_accs - (accs if args.diff else set()))
     logging.info(f"count = {len(accs)}")
 
     paths = []
@@ -95,8 +99,8 @@ def main(argv):
         # fetch
         k = min(len(accs), j + args.retmax)
         csv = ",".join(accs[j : j + args.retmax])
-        with Entrez.efetch(args.db, id=csv, rettype=args.rettype, retmode="text") as handle:
-            path = args.repo.parent / f"{args.repo.name}-{i}.{args.rettype}.bgz.tmp"
+        with Entrez.efetch(db, id=csv, rettype=rettype, retmode="text") as handle:
+            path = args.repo.parent / f"{args.repo.name}-{i}.{rettype}.bgz.tmp"
             # compress
             with BgzfWriter(path) as stream:
                 print(handle.read(), file=stream)
@@ -110,7 +114,7 @@ def main(argv):
         # rename with zero-fill
         width = len(str(len(paths)))
         paths = {
-            ele: ele.with_name(f"{args.repo.name}-{idx:0{width}}.{args.rettype}.bgz")
+            ele: ele.with_name(f"{args.repo.name}-{idx:0{width}}.{rettype}.bgz")
             for idx, ele in enumerate(paths, start=1)
         }
         for key, val in paths.items():
@@ -121,12 +125,12 @@ def main(argv):
             path_tmp = path_db.with_suffix(".tmp")
             path_tmp.exists() and path_tmp.unlink()
             print("index...")
-            SeqIO.index_db(str(path_tmp), list(map(str, paths.values())), args.rettype)
+            SeqIO.index_db(str(path_tmp), list(map(str, paths.values())), rettype)
             # update metadata
             with sqlite3.connect(path_tmp) as conn:
                 conn.execute(
                     "INSERT INTO meta_data VALUES ('db', ?), ('term', ?), ('mdat', ?)",
-                    (args.db, args.term, now),
+                    (db, baseterm, now),
                 )
             path_tmp.rename(path_db)
         except Exception as e:

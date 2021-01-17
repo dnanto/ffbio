@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
-from signal import signal, SIGPIPE, SIG_DFL
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType
+from itertools import chain
+from signal import SIG_DFL, SIGPIPE, signal
 
 from Bio import SeqIO
-
-from itertools import chain
 
 
 def qualifiers(rec):
@@ -22,6 +21,7 @@ def parse_argv(argv):
 
     parser.add_argument("file", type=FileType(), help="the sequence file")
     parser.add_argument("qual", nargs="*", help="the qualifier keys")
+    parser.add_argument("-description", action="store_true", help="the flag to include description")
     parser.add_argument("-default", default="?", help="the default value for missing entries")
     parser.add_argument("-joi", default=";", help="the field value join character")
     parser.add_argument("-sep", default="\t", nargs="*", help="the table separator")
@@ -40,11 +40,13 @@ def main(argv):
             records = list(records)
             args.qual = set(chain.from_iterable(ele.keys() for ele in map(qualifiers, records)))
 
-        print("accver", *args.qual, sep=args.sep)
+        hdr = ["id"] + (["description"] if args.description else [])
+
+        print(*hdr, *args.qual, sep=args.sep)
         for rec in records:
             obj = qualifiers(rec)
             row = (args.joi.join(obj.get(key, args.default)) for key in args.qual)
-            print(rec.id, *row, sep=args.sep)
+            print(*(getattr(rec, name) for name in hdr), *row, sep=args.sep)
 
 
 if __name__ == "__main__":

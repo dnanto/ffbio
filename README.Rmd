@@ -9,41 +9,25 @@ output:
     toc_depth: 2
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-	warning = F,
-	message = F,
-	comment = ""
-)
-
-if (!exists("PATH")) 
-  PATH <- paste(file.path(getwd(), "ffbio"), Sys.getenv("PATH"), sep = ":")
-if (!exists("PYTHONPATH")) 
-  PYTHONPATH <- paste(getwd(), Sys.getenv("PYTHONPATH"), sep = ":")
-
-Sys.setenv(PATH = PATH, PYTHONPATH = PYTHONPATH)
-```
-
 # Abstract
 
-**ffbio** is a collection of scripts to work with flat-file sequence databases and help complete my dissertation.
+**ffbio** is a collection of scripts to work with flat-file sequence databases and help complete my dissertation/projects...
 
-To install, run: ```pip install git+https://github.com/dnanto/ffbio#egg=ffbio```.
+Local install: ```./setup.py install```
+Remote install: ```pip install git+https://github.com/dnanto/ffbio#egg=ffbio```.
 
-Note: this repository is experimental...
-
+Note: this repository is experimental and there are no tests yet...
 Note: this is an Rmarkdown document and uses a mix of R and bash code chunks.
-
 Note: [search field descriptions](https://www.ncbi.nlm.nih.gov/books/NBK49540/).
 
 # Scripts
 
-## ffdb.py
+## ffbio.ffdb
 
-The ```ffdb.py``` script searches NCBI and downloads the entire result set. The destination folder stores the [BGZip](http://www.htslib.org/doc/bgzip.html)-compressed flat-files. The [index_db](https://biopython.org/DIST/docs/api/Bio.SeqIO-module.html#index_db) method generates the [SQLite](https://www.sqlite.org/index.html) database in the same directory. The script also modifies the meta_data table to preserve NCBI search parameters.
+The ```ffdb.py``` script searches NCBI and downloads the entire result set into a destination folder that stores the [BGZip](http://www.htslib.org/doc/bgzip.html)-compressed flat-files while the [index_db](https://biopython.org/DIST/docs/api/Bio.SeqIO-module.html#index_db) method generates a [SQLite](https://www.sqlite.org/index.html) database in the same directory and modifies the meta_data table to preserve NCBI search parameters.
 
 ```{bash}
-ffdb.py -h
+python -m ffbio.ffdb -h
 ```
 
 ### Ex-1
@@ -51,7 +35,7 @@ ffdb.py -h
 Initialize a repository of indexed GenBank files. Search NCBI for all *Mimivirus* genomic DNA sequences.
 
 ```{bash}
-ffdb.py data/315393 \
+python -m ffbio.ffdb data/315393 \
   -term 'txid315393[PORGN] AND biomol_genomic[PROP] NOT gbdiv_pat[PROP] NOT gbdiv_syn[PROP] NOT WGS[KYWD]' \
   -rettype fasta \
   -retmax 100
@@ -60,7 +44,7 @@ ffdb.py data/315393 \
 List the results in the directory.
 
 ```{bash}
-du -sh data/315393.*
+ls data/315393.*
 ```
 
 ### Ex-2
@@ -68,15 +52,15 @@ du -sh data/315393.*
 Update the same repository.
 
 ```{bash}
-ffdb.py data/315393
+python -m ffbio.ffdb data/315393
 ```
 
-## ffidx.py
+## ffbio.ffidx
 
 The ```ffidx.py``` script creates and/or queries an indexed set of sequence files created via the [index_db](https://biopython.org/DIST/docs/api/Bio.SeqIO-module.html#index_db) method.
 
 ```{bash}
-ffidx.py -h
+python -m ffbio.ffidx -h
 ```
 
 ### Ex-1
@@ -85,7 +69,7 @@ Create an index using multiple multi-GenBank files and query some accessions.
 
 ```{bash}
 ls data/oantigen.[1-2].gbk.gz | \
-  xargs ffidx.py data/oantigen.db -entry AF390573.1 GU576499.1 -fi gb -filenames | \
+  xargs python -m ffbio.ffidx data/oantigen.db -entry AF390573.1 GU576499.1 -fi gb -filenames | \
   grep -A 2 \>
 ```
 
@@ -101,7 +85,7 @@ Same thing, except create the index temporarily in memory.
 
 ```{bash}
 ls data/oantigen.[1-2].gbk.gz | \
-  xargs ffidx.py ":memory:" -entry AF390573.1 GU576499.1 -fi gb -filenames | \
+  xargs python -m ffbio.ffidx ":memory:" -entry AF390573.1 GU576499.1 -fi gb -filenames | \
   grep -A 2 \>
 ```
 
@@ -110,15 +94,15 @@ ls data/oantigen.[1-2].gbk.gz | \
 Dump all sequences as GenBank records.
 
 ```{bash}
-ffidx.py data/oantigen.db -dump -fo gb | grep ^DEFINITION
+python -m ffbio.ffidx data/oantigen.db -dump -fo gb | grep ^DEFINITION
 ```
 
-## ffcds.py
+## ffbio.ffcds
 
 The ```ffcds.py``` script extract all CDS records from a GenBank file.
 
 ```{bash}
-ffcds.py -h
+python -m ffbio.ffcds -h
 ```
 
 ### Ex-1
@@ -126,15 +110,15 @@ ffcds.py -h
 Extract all CDS records.
 
 ```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | ffcds.py - | grep -A 2 \> | head
+gunzip -c data/oantigen.[1-2].gbk.gz | python -m ffbio.ffcds - | grep -A 2 \> | head
 ```
 
-## ffuseq.py
+## ffbio.ffuseq
 
 The ```ffuseq.py``` script computes the unique set of sequences and an optional tab-separated mapping file.
 
 ```{bash}
-ffuseq.py -h
+python -m ffbio.ffuseq -h
 ```
 
 ### Ex-1
@@ -142,7 +126,7 @@ ffuseq.py -h
 This example creates a file stream with duplicate records. Output the unique set and a mapping file.
 
 ```{bash}
-gunzip -c data/oantigen.[1-2].gbk.gz | ffuseq.py - -fmt gb -map data/urec.tsv > data/urec.gbk
+gunzip -c data/oantigen.[1-2].gbk.gz | python -m ffbio.ffuseq - -fmt gb -map data/urec.tsv > data/urec.gbk
 ```
 
 ```grep``` Unique record LOCUS tags.

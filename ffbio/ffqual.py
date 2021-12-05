@@ -25,7 +25,7 @@ def parse_argv(argv):
     parser.add_argument("-default", default="?", help="the default value for missing entries")
     parser.add_argument("-joi", default=";", help="the field value join character")
     parser.add_argument("-sep", default="\t", nargs="*", help="the table separator")
-
+    parser.add_argument("-sort", action="store_true", help="the flag to sort by id")
     args = parser.parse_args(argv)
 
     return args
@@ -41,7 +41,7 @@ def main(argv):
             args.qual = set(chain.from_iterable(ele.keys() for ele in map(qualifiers, records)))
 
         hdr = ["id"] + (["description"] if args.description else [])
-
+        records = sorted(records, key=lambda record: record.id) if args.sort else records
         print(*hdr, *args.qual, sep=args.sep)
         for rec in records:
             obj = qualifiers(rec)

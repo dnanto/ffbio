@@ -17,6 +17,9 @@ from Bio import Entrez, SeqIO
 from Bio.bgzf import BgzfWriter
 
 
+MAX_MDAT = 9999
+
+
 def esearch_accs(db, term, retmax=1000):
     # get number of results
     with Entrez.esearch(db=db, term=term, idtype="acc", retmax=retmax, usehistory=True) as handle:
@@ -37,7 +40,6 @@ def parse_argv(argv):
     parser.add_argument("repo", type=Path, help="the target file to create/update")
     parser.add_argument("-db", default="nuccore", help="the NCBI database")
     parser.add_argument("-term", help="the NCBI query term")
-    parser.add_argument("-diff", action="store_true", help="the flag to download set difference")
     parser.add_argument("-rettype", default="fasta", help="the sequence file format")
     parser.add_argument("-retmax", type=int, default=1000, help="the records to post at a time")
     parser.add_argument("-email", default="", help="the e-mail to identify yourself to NCBI")
@@ -86,11 +88,11 @@ def main(argv):
             baseterm = meta.get("term", baseterm)
 
     # remote - local accessions
-    term = baseterm + (f" AND {mdat}:3000[MDAT]" if mdat else "")
+    term = baseterm + (f" AND {mdat}:{MAX_MDAT}[MDAT]" if mdat else "")
     logging.info(term)
     now = datetime.now().strftime("%Y/%m/%d")
     remote_accs = set(chain.from_iterable(esearch_accs(db, term, args.retmax)))
-    accs = list(remote_accs - (accs if args.diff else set()))
+    accs = list(remote_accs - accs)
     logging.info(f"count = {len(accs)}")
 
     paths = []
